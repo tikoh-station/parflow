@@ -31,6 +31,7 @@
 #include "llnltyps.h"
 //#include "math.h"
 #include "float.h"
+#include "morphism_cartesian.h"
 
 /*---------------------------------------------------------------------
  * Define module structures
@@ -539,6 +540,30 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
   PFModuleInvokeType(PhaseRelPermInvoke, rel_perm_module,
                      (rel_perm, pressure, density, gravity, problem_data,
                       CALCFCN));
+
+
+  Morphism *my_morphism = ctalloc(Morphism, 1);
+  PFModule *morphism_module = PFModuleNewModule(Cartesian, (my_morphism));
+  
+  ForSubgridI(is, GridSubgrids(grid))
+  {
+    ForBCStructNumPatches(ipatch, bc_struct)
+    {
+      v3 zeta = {0, 0, 0};
+      m3 basis_cov = MorphismDel(my_morphism, zeta);
+
+      v3 grad_z = {0, 0, 1};
+      v3 grad_z_cov = my_morphism->to_covariant(grad_z, basis_cov);
+
+      GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+      {
+        // ?? 
+      });
+    }
+  }
+
+  PFModuleFreeModule(morphism_module);
+  tfree(my_morphism);
 
 
   /* Calculate contributions from second order derivatives and gravity */

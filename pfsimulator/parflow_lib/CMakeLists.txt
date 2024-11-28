@@ -45,6 +45,8 @@ set (SRC_FILES_CONST advect.F
   matdiag_scale.c
   max_field_value.c
   metadata.c
+  morphism.c
+  morphism_cartesian.c
   n_vector.c
   new_endpts.c
   nodiag_scale.c
@@ -113,6 +115,7 @@ set (SRC_FILES_CONST advect.F
   total_velocity_face.c
   turning_bandsRF.c
   usergrid_input.c
+  v3algebra.c
   w_jacobi.c
   well.c
   well_package.c

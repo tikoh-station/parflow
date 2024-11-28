@@ -1,0 +1,63 @@
+/*BHEADER**********************************************************************
+*
+*  Copyright (c) 1995-2024, Lawrence Livermore National Security,
+*  LLC. Produced at the Lawrence Livermore National Laboratory. Written
+*  by the Parflow Team (see the CONTRIBUTORS file)
+*  <parflow@lists.llnl.gov> CODE-OCEC-08-103. All rights reserved.
+*
+*  This file is part of Parflow. For details, see
+*  http://www.llnl.gov/casc/parflow
+*
+*  Please read the COPYRIGHT file or Our Notice and the LICENSE file
+*  for the GNU Lesser General Public License.
+*
+*  This program is free software; you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License (as published
+*  by the Free Software Foundation) version 2.1 dated February 1999.
+*
+*  This program is distributed in the hope that it will be useful, but
+*  WITHOUT ANY WARRANTY; without even the IMPLIED WARRANTY OF
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms
+*  and conditions of the GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this program; if not, write to the Free Software
+*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+*  USA
+**********************************************************************EHEADER*/
+/*****************************************************************************
+*
+*  This module computes the contributions for the spatial discretization of the
+*  kinematic equation for the overland flow boundary condition:KE,KW,KN,KS.
+*
+*  It also computes the derivatives of these terms for inclusion in the Jacobian.
+*
+* Could add a switch statement to handle the diffusion wave also.
+* -DOK
+*****************************************************************************/
+
+#ifndef _MORPHISM_CARTESIAN_HEADER
+#define _MORPHISM_CARTESIAN_HEADER
+
+#include "v3algebra.h"
+#include "morphism.h"
+
+void Cartesian(Morphism *my_morphism);
+PFModule* CartesianInitInstanceXtra();
+void CartesianFreeInstanceXtra();
+PFModule* CartesianNewPublicXtra();
+void CartesianFreePublicXtra();
+int CartesianSizeOfTempData();
+
+v3 CartesianEval(PFModule *morphism_core, const v3 zeta);
+v3 CartesianInverse(PFModule *morphism_core, const v3 x);
+m3 CartesianDel(PFModule *morphism_core, const v3 x);
+m3 CartesianDelInverse(PFModule *morphism_core, const v3 x);
+double CartesianJacobian(PFModule *morphism_core, const v3 zeta);
+
+v3 CartesianToContravariant(const v3 vec, const m3 basis_contravariant);
+v3 CartesianToCovariant(const v3 vec, const m3 basis_covariant);
+v3 CartesianFromContravariant(const v3 vec, const m3 basis_contravariant);
+v3 CartesianFromCovariant(const v3 vec, const m3 basis_covariant);
+
+#endif // _MORPHISM_CARTESIAN_HEADER
