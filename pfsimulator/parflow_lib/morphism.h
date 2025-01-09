@@ -31,6 +31,7 @@
 
 #include "parflow.h"
 #include "v3algebra.h"
+#include "v3basis.h"
 
 // structure to support curvilinear coordinates
 typedef struct {
@@ -38,32 +39,32 @@ typedef struct {
   PFModule *morphism_core;
 
   // transform from curvilinear `zeta` to cartesian `x` coordinates
-  v3 (*eval)(PFModule *morphism_core, const v3 zeta);
+  v3 (*eval)(PFModule *morphism_core, v3 zeta);
 
   // transform from cartesian `x` to curvilinear `zeta` coordinates
-  v3 (*inverse)(PFModule *morphism_core, const v3 x);
+  v3 (*inverse)(PFModule *morphism_core, v3 x);
 
   // compute covariant basis vectors
-  m3 (*del)(PFModule *morphism_core, const v3 zeta);
+  v3basis (*del)(PFModule *morphism_core, v3 zeta);
 
   // compute contravariant basis vectors
-  m3 (*del_inverse)(PFModule *morphism_core, const v3 zeta);
+  v3basis (*del_inverse)(PFModule *morphism_core, v3 zeta);
 
   // compute jacobian
-  double (*jacobian)(PFModule *morphism_core, const v3 zeta);
+  double (*jacobian)(PFModule *morphism_core, v3 zeta);
 
 
   // compute contravariant components of `vec` from its cartesian representation
-  v3 (*to_contravariant)(const v3 vec, const m3 basis_contravariant);
+  v3 (*to_contravariant)(v3 vec, v3basis basis_contravariant);
 
   // compute covariant components of `vec` from its cartesian representation
-  v3 (*to_covariant)(const v3 vec, const m3 basis_covariant);
+  v3 (*to_covariant)(v3 vec, v3basis basis_covariant);
 
   // compute cartesian representation of `vec` from its contravariant components
-  v3 (*from_contravariant)(const v3 vec, const m3 basis_contravariant);
+  v3 (*from_contravariant)(v3 vec, v3basis basis_covariant);
 
   // compute cartesian representation of `vec` from its covariant components
-  v3 (*from_covariant)(const v3 vec, const m3 basis_covariant);
+  v3 (*from_covariant)(v3 vec, v3basis basis_contravariant);
 
 } Morphism;
 
@@ -86,13 +87,13 @@ typedef struct {
 
 
 
-v3 MorphismToContravariant(const v3 vec, const m3 basis_contravariant);
+v3 MorphismToContravariant(v3 vec, v3basis basis_contravariant);
 
-v3 MorphismToCovariant(const v3 vec, const m3 basis_covariant);
+v3 MorphismToCovariant(v3 vec, v3basis basis_covariant);
 
-v3 MorphismFromContravariant(const v3 vec, const m3 basis_contravariant);
+v3 MorphismFromContravariant(v3 vec, v3basis basis_covariant);
 
-v3 MorphismFromCovariant(const v3 vec, const m3 basis_covariant);
+v3 MorphismFromCovariant(v3 vec, v3basis basis_contravariant);
 
 
 #endif // _MORPHISM_HEADER

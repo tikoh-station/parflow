@@ -26,42 +26,51 @@
 *  USA
 **********************************************************************EHEADER*/
 
-#ifndef _V3ALGEBRA_HEADER
-#define _V3ALGEBRA_HEADER
+#include "v3basis.h"
 
-typedef struct {
-  double u, v, w;
-} v3;
+v3 v3basis_projection_onto(v3basis bas, v3 vec)
+{
+  v3 res = {v3_dot(bas.u, vec), v3_dot(bas.v, vec), v3_dot(bas.w, vec)};
+  return res;
+}
 
-typedef struct {
-  v3 u, v, w;
-} v3_basis;
+v3 v3basis_projection_from(v3basis bas, v3 vec)
+{
+  v3 res = v3_add(v3_scale(vec.u, bas.u), 
+    v3_add(v3_scale(vec.v, bas.v), v3_scale(vec.w, bas.w)));
+  return res;
+}
 
-typedef struct {
-  double uu, uv, uw, vu, vv, vw, wu, wv, ww;
-} m3;
+v3basis v3basis_reciprocal(v3basis bas)
+{
+  double ivol = 1.0 / v3basis_volume(bas);
+  v3basis rec = {
+    v3_scale(ivol, v3_cross(bas.v, bas.w)),
+    v3_scale(ivol, v3_cross(bas.w, bas.u)),
+    v3_scale(ivol, v3_cross(bas.u, bas.v))
+  };
+  return rec;
+}
 
-v3 v3_init(double u, double v, double w);
-v3 v3_scale(double c, v3 A);
-v3 v3_add(v3 A, v3 B);
-v3 v3_subtract(v3 A, v3 B);
-v3 v3_linear_sum(double a, v3 A, double b, v3 B);
-double v3_dot(v3 A, v3 B);
-v3 v3_cross(v3 A, v3 B);
-double v3_norm(v3 A);
+double v3basis_volume(v3basis bas)
+{
+  return v3_dot(bas.u, v3_cross(bas.v, bas.w));
+}
 
-v3 v3_basis_project(v3_basis bas, v3 vec);
+m3 m3v3basis_left_dot(v3basis bas, m3 M)
+{
+  v3 ru = m3v3_left_dot(bas.u, M);
+  v3 rv = m3v3_left_dot(bas.v, M);
+  v3 rw = m3v3_left_dot(bas.w, M);
+  m3 res = {ru.u, ru.v, ru.w, rv.u, rv.v, rv.w, rw.u, rw.v, rw.w};
+  return res;
+}
 
-m3 m3_diagonal(double uu, double vv, double ww);
-m3 m3_factor(double c, m3 M);
-m3 m3_add(m3 M, m3 N);
-m3 m3_subtract(m3 M, m3 N);
-m3 m3_multiply(m3 M, m3 N);
-m3 m3_inverse(m3 M);
-m3 m3_transpose(m3 M);
-double m3_determinant(m3 M);
-
-v3 m3v3_left_dot(v3 A, m3 M);
-v3 m3v3_right_dot(m3 M, v3 A);
-
-#endif // _V3ALGEBRA_HEADER
+m3 m3v3basis_right_dot(m3 M, v3basis bas)
+{
+  v3 ru = m3v3_right_dot(M, bas.u);
+  v3 rv = m3v3_right_dot(M, bas.v);
+  v3 rw = m3v3_right_dot(M, bas.w);
+  m3 res = {ru.u, rv.u, rw.u, ru.v, rv.v, rw.v, ru.w, rv.w, rw.w};
+  return res;
+}

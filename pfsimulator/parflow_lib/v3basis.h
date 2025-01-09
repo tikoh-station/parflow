@@ -26,42 +26,25 @@
 *  USA
 **********************************************************************EHEADER*/
 
-#ifndef _V3ALGEBRA_HEADER
-#define _V3ALGEBRA_HEADER
+#ifndef _V3BASIS_HEADER
+#define _V3BASIS_HEADER
 
-typedef struct {
-  double u, v, w;
-} v3;
+#include "v3algebra.h"
 
 typedef struct {
   v3 u, v, w;
-} v3_basis;
+} v3basis;
 
-typedef struct {
-  double uu, uv, uw, vu, vv, vw, wu, wv, ww;
-} m3;
+v3 v3basis_projection_onto(v3basis bas, v3 vec);
 
-v3 v3_init(double u, double v, double w);
-v3 v3_scale(double c, v3 A);
-v3 v3_add(v3 A, v3 B);
-v3 v3_subtract(v3 A, v3 B);
-v3 v3_linear_sum(double a, v3 A, double b, v3 B);
-double v3_dot(v3 A, v3 B);
-v3 v3_cross(v3 A, v3 B);
-double v3_norm(v3 A);
+v3 v3basis_projection_from(v3basis bas, v3 vec);
 
-v3 v3_basis_project(v3_basis bas, v3 vec);
+v3basis v3basis_reciprocal(v3basis bas);
 
-m3 m3_diagonal(double uu, double vv, double ww);
-m3 m3_factor(double c, m3 M);
-m3 m3_add(m3 M, m3 N);
-m3 m3_subtract(m3 M, m3 N);
-m3 m3_multiply(m3 M, m3 N);
-m3 m3_inverse(m3 M);
-m3 m3_transpose(m3 M);
-double m3_determinant(m3 M);
+double v3basis_volume(v3basis bas);
 
-v3 m3v3_left_dot(v3 A, m3 M);
-v3 m3v3_right_dot(m3 M, v3 A);
+m3 m3v3basis_left_dot(v3basis bas, m3 M);
 
-#endif // _V3ALGEBRA_HEADER
+m3 m3v3basis_right_dot(m3 M, v3basis bas);
+
+#endif // _V3BASIS_HEADER

@@ -49,15 +49,15 @@ PFModule* CartesianNewPublicXtra();
 void CartesianFreePublicXtra();
 int CartesianSizeOfTempData();
 
-v3 CartesianEval(PFModule *morphism_core, const v3 zeta);
-v3 CartesianInverse(PFModule *morphism_core, const v3 x);
-m3 CartesianDel(PFModule *morphism_core, const v3 x);
-m3 CartesianDelInverse(PFModule *morphism_core, const v3 x);
-double CartesianJacobian(PFModule *morphism_core, const v3 zeta);
+v3 CartesianEval(PFModule *morphism_core, v3 zeta);
+v3 CartesianInverse(PFModule *morphism_core, v3 x);
+v3basis CartesianDel(PFModule *morphism_core, v3 x);
+v3basis CartesianDelInverse(PFModule *morphism_core, v3 x);
+double CartesianJacobian(PFModule *morphism_core, v3 zeta);
 
-v3 CartesianToContravariant(const v3 vec, const m3 basis_contravariant);
-v3 CartesianToCovariant(const v3 vec, const m3 basis_covariant);
-v3 CartesianFromContravariant(const v3 vec, const m3 basis_contravariant);
-v3 CartesianFromCovariant(const v3 vec, const m3 basis_covariant);
+v3 CartesianToContravariant(v3 vec, v3basis basis_contravariant);
+v3 CartesianToCovariant(v3 vec, v3basis basis_covariant);
+v3 CartesianFromContravariant(v3 vec, v3basis basis_contravariant);
+v3 CartesianFromCovariant(v3 vec, v3basis basis_covariant);
 
 #endif // _MORPHISM_CARTESIAN_HEADER

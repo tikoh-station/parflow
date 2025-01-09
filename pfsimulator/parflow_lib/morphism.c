@@ -28,26 +28,26 @@
 
 #include "morphism.h"
 
-v3 MorphismToContravariant(const v3 vec, const m3 basis_contravariant)
+v3 MorphismToContravariant(v3 vec, v3basis basis_contravariant)
 {
-  v3 res = m3v3_contraction(basis_contravariant, vec);
+  v3 res = v3basis_projection_onto(basis_contravariant, vec);
   return res;
 }
 
-v3 MorphismToCovariant(const v3 vec, const m3 basis_covariant)
+v3 MorphismToCovariant(v3 vec, v3basis basis_covariant)
 {
-  v3 res = m3v3_contraction(m3_transpose(basis_covariant), vec);
+  v3 res = v3basis_projection_onto(basis_covariant, vec);
   return res;
 }
 
-v3 MorphismFromContravariant(const v3 vec, const m3 basis_contravariant)
+v3 MorphismFromContravariant(v3 vec, v3basis basis_covariant)
 {
-  v3 res = m3v3_contraction(basis_contravariant, vec);
+  v3 res = v3basis_projection_from(basis_covariant, vec);
   return res;
 }
 
-v3 MorphismFromCovariant(const v3 vec, const m3 basis_covariant)
+v3 MorphismFromCovariant(v3 vec, v3basis basis_contravariant)
 {
-  v3 res = m3v3_contraction(m3_transpose(basis_covariant), vec);
+  v3 res = v3basis_projection_from(basis_contravariant, vec);
   return res;
 }

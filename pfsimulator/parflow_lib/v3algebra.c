@@ -27,31 +27,44 @@
 **********************************************************************EHEADER*/
 
 #include "v3algebra.h"
+#include "math.h"
 
-v3 v3_scale(const double c, const v3 A)
+v3 v3_init(double u, double v, double w)
+{
+  v3 res = {u, v, w};
+  return res;
+}
+
+v3 v3_scale(double c, v3 A)
 {
   v3 res = {c * A.u, c * A.v, c * A.w};
   return res;
 }
 
-v3 v3_add(const v3 A, const v3 B)
+v3 v3_add(v3 A, v3 B)
 {
   v3 res = {A.u + B.u, A.v + B.v, A.w + B.w};
   return res;
 }
 
-v3 v3_subtract(const v3 A, const v3 B)
+v3 v3_subtract(v3 A, v3 B)
 {
   v3 res = {A.u - B.u, A.v - B.v, A.w - B.w};
   return res;
 }
 
-double v3_dot(const v3 A, const v3 B)
+v3 v3_linear_sum(double a, v3 A, double b, v3 B)
+{
+  v3 res = v3_add(v3_scale(a, A), v3_scale(b, B));
+  return res;
+}
+
+double v3_dot(v3 A, v3 B)
 {
   return (A.u * B.u + A.v * B.v + A.w * B.w);
 }
 
-v3 v3_cross(const v3 A, const v3 B)
+v3 v3_cross(v3 A, v3 B)
 {
   v3 res = {
     A.v * B.w - A.w * B.v,
@@ -61,89 +74,126 @@ v3 v3_cross(const v3 A, const v3 B)
   return res;
 }
 
+double v3_norm(v3 A)
+{
+  return sqrt(v3_dot(A, A));
+}
 
-m3 m3_add(const m3 A, const m3 B)
+
+m3 m3_diagonal(double uu, double vv, double ww)
+{
+  m3 res = {uu, 0, 0, 0, vv, 0, 0, 0, ww};
+  return res;
+}
+
+m3 m3_factor(double c, m3 M)
 {
   m3 res = {
-    A.uu + B.uu, A.uv + B.uv, A.uw + B.uw,
-    A.vu + B.vu, A.vv + B.vv, A.vw + B.vw,
-    A.wu + B.wu, A.wv + B.wv, A.ww + B.ww
+    c * M.uu, // uu
+    c * M.uv, // uv
+    c * M.uw, // uw
+    c * M.vu, // vu
+    c * M.vv, // vv
+    c * M.vw, // vw
+    c * M.wu, // wu
+    c * M.wv, // wv
+    c * M.ww  // ww
   };
   return res;
 }
 
-m3 m3_subtract(const m3 A, const m3 B)
+m3 m3_add(m3 M, m3 N)
 {
   m3 res = {
-    A.uu - B.uu, A.uv - B.uv, A.uw - B.uw,
-    A.vu - B.vu, A.vv - B.vv, A.vw - B.vw,
-    A.wu - B.wu, A.wv - B.wv, A.ww - B.ww
+    M.uu + N.uu, M.uv + N.uv, M.uw + N.uw,
+    M.vu + N.vu, M.vv + N.vv, M.vw + N.vw,
+    M.wu + N.wu, M.wv + N.wv, M.ww + N.ww
   };
   return res;
 }
 
-m3 m3_multiply(const m3 A, const m3 B)
+m3 m3_subtract(m3 M, m3 N)
 {
   m3 res = {
-    A.uu * B.uu + A.uv * B.vu + A.uw * B.wu, // uu
-    A.uu * B.uv + A.uv * B.vv + A.uw * B.wv, // uv
-    A.uu * B.uw + A.uv * B.vw + A.uw * B.ww, // uw
-    A.vu * B.uu + A.vv * B.vu + A.vw * B.wu, // vu
-    A.vu * B.uv + A.vv * B.vv + A.vw * B.wv, // vv
-    A.vu * B.uw + A.vv * B.vw + A.vw * B.ww, // vw
-    A.wu * B.uu + A.wv * B.vu + A.ww * B.wu, // wu
-    A.wu * B.uv + A.wv * B.vv + A.ww * B.wv, // wv
-    A.wu * B.uw + A.wv * B.vw + A.ww * B.ww  // ww
+    M.uu - N.uu, M.uv - N.uv, M.uw - N.uw,
+    M.vu - N.vu, M.vv - N.vv, M.vw - N.vw,
+    M.wu - N.wu, M.wv - N.wv, M.ww - N.ww
   };
   return res;
 }
 
-m3 m3_inverse(const m3 A)
+m3 m3_multiply(m3 M, m3 N)
 {
-  double idet = 1.0 / m3_determinant(A);
   m3 res = {
-    idet * (A.vv * A.ww - A.vw * A.wv), // uu
-    idet * (A.uw * A.wv - A.uv * A.ww), // uv
-    idet * (A.uv * A.vw - A.uw * A.vv), // uw
-    idet * (A.vw * A.wu - A.vu * A.ww), // vu
-    idet * (A.uu * A.ww - A.uw * A.wu), // vv
-    idet * (A.uw * A.vu - A.uu * A.vw), // vw
-    idet * (A.vu * A.wv - A.vv * A.wu), // wu
-    idet * (A.uv * A.wu - A.uu * A.wv), // wv
-    idet * (A.uu * A.vv - A.uv * A.vu)  // ww
+    M.uu * N.uu + M.uv * N.vu + M.uw * N.wu, // uu
+    M.uu * N.uv + M.uv * N.vv + M.uw * N.wv, // uv
+    M.uu * N.uw + M.uv * N.vw + M.uw * N.ww, // uw
+    M.vu * N.uu + M.vv * N.vu + M.vw * N.wu, // vu
+    M.vu * N.uv + M.vv * N.vv + M.vw * N.wv, // vv
+    M.vu * N.uw + M.vv * N.vw + M.vw * N.ww, // vw
+    M.wu * N.uu + M.wv * N.vu + M.ww * N.wu, // wu
+    M.wu * N.uv + M.wv * N.vv + M.ww * N.wv, // wv
+    M.wu * N.uw + M.wv * N.vw + M.ww * N.ww  // ww
   };
   return res;
 }
 
-m3 m3_transpose(const m3 A)
+m3 m3_inverse(m3 M)
 {
+  double idet = 1.0 / m3_determinant(M);
   m3 res = {
-    A.uu, // uu
-    A.vu, // uv
-    A.wu, // uw
-    A.uv, // vu
-    A.vv, // vv
-    A.wv, // vw
-    A.uw, // wu
-    A.vw, // wv
-    A.ww  // ww
+    idet * (M.vv * M.ww - M.vw * M.wv), // uu
+    idet * (M.uw * M.wv - M.uv * M.ww), // uv
+    idet * (M.uv * M.vw - M.uw * M.vv), // uw
+    idet * (M.vw * M.wu - M.vu * M.ww), // vu
+    idet * (M.uu * M.ww - M.uw * M.wu), // vv
+    idet * (M.uw * M.vu - M.uu * M.vw), // vw
+    idet * (M.vu * M.wv - M.vv * M.wu), // wu
+    idet * (M.uv * M.wu - M.uu * M.wv), // wv
+    idet * (M.uu * M.vv - M.uv * M.vu)  // ww
   };
   return res;
 }
 
-double m3_determinant(const m3 A) 
+m3 m3_transpose(m3 M)
 {
-  return (A.uu * (A.vv * A.ww - A.vw * A.wv)
-    + A.uv * (A.vw * A.wu - A.vu * A.ww)
-    + A.uw * (A.vu * A.wv - A.vv * A.wu));
+  m3 res = {
+    M.uu, // uu
+    M.vu, // uv
+    M.wu, // uw
+    M.uv, // vu
+    M.vv, // vv
+    M.wv, // vw
+    M.uw, // wu
+    M.vw, // wv
+    M.ww  // ww
+  };
+  return res;
 }
 
-v3 m3v3_contraction(const m3 A, const v3 B)
+double m3_determinant(m3 M) 
+{
+  return (M.uu * (M.vv * M.ww - M.vw * M.wv)
+    + M.uv * (M.vw * M.wu - M.vu * M.ww)
+    + M.uw * (M.vu * M.wv - M.vv * M.wu));
+}
+
+v3 m3v3_left_dot(v3 A, m3 M)
 {
   v3 res = {
-    A.uu * B.u + A.uv * B.v + A.uw * B.w, // u
-    A.vu * B.u + A.vv * B.v + A.vw * B.w, // v
-    A.wu * B.u + A.wv * B.v + A.ww * B.w  // w
+    M.uu * A.u + M.vu * A.v + M.wu * A.w, // u
+    M.uv * A.u + M.vv * A.v + M.wv * A.w, // v
+    M.uw * A.u + M.vw * A.v + M.ww * A.w  // w
+  };
+  return res;
+}
+
+v3 m3v3_right_dot(m3 M, v3 A)
+{
+  v3 res = {
+    M.uu * A.u + M.uv * A.v + M.uw * A.w, // u
+    M.vu * A.u + M.vv * A.v + M.vw * A.w, // v
+    M.wu * A.u + M.wv * A.v + M.ww * A.w  // w
   };
   return res;
 }
