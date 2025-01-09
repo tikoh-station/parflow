@@ -32,6 +32,7 @@
 //#include "math.h"
 #include "float.h"
 #include "morphism_cartesian.h"
+#include "richards_div_eval.h"
 
 /*---------------------------------------------------------------------
  * Define module structures
@@ -388,12 +389,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
     {
       int ip = SubvectorEltIndex(f_sub, i, j, k);
 
-      /*     del_x_slope = (1.0/cos(atan(x_ssl_dat[io])));
-       *   del_y_slope = (1.0/cos(atan(y_ssl_dat[io])));  */
-      double del_x_slope = 1.0;
-      double del_y_slope = 1.0;
-
-      fp[ip] += ss[ip] * vol * del_x_slope * del_y_slope * z_mult_dat[ip] * (pp[ip] * sp[ip] * dp[ip] - opp[ip] * osp[ip] * odp[ip]);
+      fp[ip] += ss[ip] * vol * z_mult_dat[ip] * 
+        (pp[ip] * sp[ip] * dp[ip] - opp[ip] * osp[ip] * odp[ip]);
     });
   }
 
@@ -544,26 +541,44 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
   Morphism *my_morphism = ctalloc(Morphism, 1);
   PFModule *morphism_module = PFModuleNewModule(Cartesian, (my_morphism));
-  
+
   ForSubgridI(is, GridSubgrids(grid))
   {
-    ForBCStructNumPatches(ipatch, bc_struct)
+    subgrid = GridSubgrid(grid, is);
+    pp = SubvectorData(VectorSubvector(pressure, is));
+    dp = SubvectorData(VectorSubvector(density, is));
+    rpp = SubvectorData(VectorSubvector(rel_perm, is));
+
+    permxp = SubvectorData(VectorSubvector(permeability_x, is));
+    permyp = SubvectorData(VectorSubvector(permeability_y, is));
+    permzp = SubvectorData(VectorSubvector(permeability_z, is));
+
+    double du = SubgridDX(subgrid);
+    double dv = SubgridDY(subgrid);
+    double dw = SubgridDZ(subgrid);
+
+    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
     {
-      v3 zeta = {0, 0, 0};
-      m3 basis_cov = MorphismDel(my_morphism, zeta);
+      StencilIndx S;
+      SubvectorStencilIndx(&S, p_sub, subgrid, i, j, k);
 
-      v3 grad_z = {0, 0, 1};
-      v3 grad_z_cov = my_morphism->to_covariant(grad_z, basis_cov);
+      double u_rgt = RichardsDivergenceRgt(&S, my_morphism, pp, dp, rpp,
+                                          permxp, permyp, permzp, gravity,
+                                          viscosity, du, dv, dw);
+      double u_top = RichardsDivergenceTop(&S, my_morphism, pp, dp, rpp,
+                                          permxp, permyp, permzp, gravity,
+                                          viscosity, du, dv, dw);
+      double u_frt = RichardsDivergenceFrt(&S, my_morphism, pp, dp, rpp,
+                                          permxp, permyp, permzp, gravity,
+                                          viscosity, du, dv, dw);
 
-      GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
-      {
-        // ?? 
-      });
-    }
+      PlusEquals(fp[S.mid], dt * (u_rgt + u_top + u_frt));
+      PlusEquals(fp[S.rgt], -dt * u_rgt);
+      PlusEquals(fp[S.top], -dt * u_top);
+      PlusEquals(fp[S.frt], -dt * u_frt);
+    });
   }
 
-  PFModuleFreeModule(morphism_module);
-  tfree(my_morphism);
 
 
   /* Calculate contributions from second order derivatives and gravity */
@@ -904,463 +919,658 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
     {
       bc_patch_values = BCStructPatchValues(bc_struct, ipatch, is);
 
-      ForPatchCellsPerFace(DirichletBC,
+//       ForPatchCellsPerFace(DirichletBC,
+//                            BeforeAllCells(DoNothing),
+//                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
+//                            Locals(int dir, ip;
+//                                   int vel_idx, vx_l, vy_l, vz_l;
+//                                   double *vel_vec;
+//                                   double diff, u_new, u_old, value, h;
+//                                   double x_dir_g, y_dir_g, z_dir_g;
+//                                   double sep, lower_cond, upper_cond;
+//                                   double del_x_slope, del_y_slope; ),
+//                            CellSetup(
+//       {
+//         dir = 0;
+//         ip = SubvectorEltIndex(p_sub, i, j, k);
+
+//         vel_idx = 0;
+//         vx_l = SubvectorEltIndex(vx_sub, i, j, k);
+//         vy_l = SubvectorEltIndex(vy_sub, i, j, k);
+//         vz_l = SubvectorEltIndex(vz_sub, i, j, k);
+//         vel_vec = NULL;
+//         h = 0.0;
+
+//         diff = 0.0e0;
+//         u_new = 0.0e0;
+//         u_old = 0.0e0;
+
+//         value = bc_patch_values[ival];
+//         x_dir_g = 0.0;
+//         y_dir_g = 0.0;
+//         z_dir_g = 1.0;
+
+//         sep = 0.0;
+//         lower_cond = 0.0;
+//         upper_cond = 0.0;
+//         // del_x_slope = (1.0 / cos(atan(x_ssl_dat[io])));
+//         // del_y_slope = (1.0 / cos(atan(y_ssl_dat[io])));
+
+//         del_x_slope = 1.0;
+//         del_y_slope = 1.0;
+//       }),
+//                            FACE(LeftFace,
+//       {
+//         h = ffx * z_mult_dat[ip] * del_y_slope;
+//         vel_vec = vx;
+//         vel_idx = vx_l;
+
+//         dir = -1;
+//         diff = pp[ip - 1] - pp[ip];
+//         u_old = h
+//                 * PMean(pp[ip - 1], pp[ip], permxp[ip - 1], permxp[ip])
+//                 * (diff / dx * del_x_slope)
+//                 * RPMean(pp[ip - 1], pp[ip],
+//                          rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip])
+//                 / viscosity;
+
+//         u_old += h *
+//                  PMean(pp[ip - 1], pp[ip],
+//                        permxp[ip - 1], permxp[ip])
+//                  * (-x_dir_g)
+//                  * RPMean(pp[ip - 1], pp[ip], rpp[ip - 1] * dp[ip - 1],
+//                           rpp[ip] * dp[ip])
+//                  / viscosity;
+
+//         diff = value - pp[ip];
+//         u_new = RPMean(value, pp[ip],
+//                        rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip]);
+//         u_new = u_new * h
+//                 * (permxp[ip] / viscosity)
+//                 * 2.0 * (diff / dx);
+//       }),
+//                            FACE(RightFace,
+//       {
+//         h = ffx * z_mult_dat[ip] * del_y_slope;
+//         vel_vec = vx;
+//         vel_idx = vx_l + 1;
+
+//         dir = 1;
+//         diff = pp[ip] - pp[ip + 1];
+//         u_old = h
+//                 * PMean(pp[ip], pp[ip + 1], permxp[ip], permxp[ip + 1])
+//                 * (diff / dx * del_x_slope)
+//                 * RPMean(pp[ip], pp[ip + 1],
+//                          rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1])
+//                 / viscosity;
+
+//         u_old += h
+//                  * PMean(pp[ip], pp[ip + 1],
+//                          permxp[ip], permxp[ip + 1])
+//                  * (-x_dir_g)
+//                  * RPMean(pp[ip], pp[ip + 1], rpp[ip] * dp[ip],
+//                           rpp[ip + 1] * dp[ip + 1])
+//                  / viscosity;
+
+//         diff = pp[ip] - value;
+//         u_new = RPMean(pp[ip], value,
+//                        rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1]);
+//         u_new = u_new * h
+//                 * (permxp[ip] / viscosity)
+//                 * 2.0 * (diff / dx);
+//       }),
+//                            FACE(DownFace,
+//       {
+//         h = ffy * z_mult_dat[ip] * del_x_slope;
+//         vel_vec = vy;
+//         vel_idx = vy_l;
+
+//         dir = -1;
+//         diff = pp[ip - sy_p] - pp[ip];
+//         u_old = h
+//                 * PMean(pp[ip - sy_p], pp[ip],
+//                         permyp[ip - sy_p], permyp[ip])
+//                 * (diff / dy * del_y_slope)
+//                 * RPMean(pp[ip - sy_p], pp[ip],
+//                          rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip])
+//                 / viscosity;
+
+//         u_old += h *
+//                  PMean(pp[ip], pp[ip - sy_p], permyp[ip],
+//                        permyp[ip - sy_p])
+//                  * (-y_dir_g)
+//                  * RPMean(pp[ip], pp[ip - sy_p], rpp[ip] * dp[ip],
+//                           rpp[ip - sy_p] * dp[ip - sy_p])
+//                  / viscosity;
+
+
+//         diff = value - pp[ip];
+//         u_new = RPMean(value, pp[ip],
+//                        rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip]);
+//         u_new = u_new * h * (permyp[ip] / viscosity)
+//                 * 2.0 * (diff / dy);
+//       }),
+//                            FACE(UpFace,
+//       {
+//         h = ffy * z_mult_dat[ip] * del_x_slope;
+//         vel_vec = vy;
+//         vel_idx = vy_l + sy_v;
+
+//         dir = 1;
+//         diff = pp[ip] - pp[ip + sy_p];
+//         u_old = h
+//                 * PMean(pp[ip], pp[ip + sy_p],
+//                         permyp[ip], permyp[ip + sy_p])
+//                 * (diff / dy * del_y_slope)
+//                 * RPMean(pp[ip], pp[ip + sy_p],
+//                          rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p])
+//                 / viscosity;
+
+//         u_old += h
+//                  * PMean(pp[ip], pp[ip + sy_p], permyp[ip],
+//                          permyp[ip + sy_p])
+//                  * (-y_dir_g)
+//                  * RPMean(pp[ip], pp[ip + sy_p], rpp[ip] * dp[ip],
+//                           rpp[ip + sy_p] * dp[ip + sy_p])
+//                  / viscosity;
+
+
+//         diff = pp[ip] - value;
+//         u_new = RPMean(pp[ip], value,
+//                        rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p]);
+//         u_new = u_new * h * (permyp[ip] / viscosity)
+//                 * 2.0 * (diff / dy);
+//       }),
+//                            FACE(BackFace,
+//       {
+//         h = ffz * del_x_slope * del_y_slope;
+//         vel_vec = vz;
+//         vel_idx = vz_l;
+
+//         dir = -1;
+//         sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]);                      //RMM
+
+//         lower_cond = pp[ip - sz_p] / sep
+//                      - (z_mult_dat[ip - sz_p] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip - sz_p] * gravity *
+//                      z_dir_g;
+
+//         upper_cond = pp[ip] / sep + (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip] * gravity *
+//                      z_dir_g;
+
+//         diff = (lower_cond - upper_cond);
+
+//         u_old = h
+//                 * PMeanDZ(permzp[ip - sz_p], permzp[ip],
+//                           z_mult_dat[ip - sz_p], z_mult_dat[ip])
+//                 * diff
+//                 * RPMean(lower_cond, upper_cond,
+//                          rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip])
+//                 / viscosity;
+
+//         sep = dz * z_mult_dat[ip];
+
+//         lower_cond = value / sep - 0.25 * dp[ip] * gravity;
+//         upper_cond = pp[ip] / sep + 0.25 * dp[ip] * gravity;
+//         diff = (lower_cond - upper_cond);
+//         u_new = RPMean(lower_cond, upper_cond,
+//                        rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip]);
+//         u_new = u_new * h *
+//                 (permzp[ip] / viscosity)
+//                 * 2.0 * diff;
+//       }),
+//                            FACE(FrontFace,
+//       {
+//         h = ffz * del_x_slope * del_y_slope;
+//         vel_vec = vz;
+//         vel_idx = vz_l + sz_v;
+
+//         dir = 1;
+
+//         /* Calculate upper face velocity.
+//          * @RMM added cos to g term to test terrain-following grid
+//          */
+
+//         sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]);                      //RMM
+
+//         lower_cond = pp[ip] / sep - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
+//                      z_dir_g;
+
+//         upper_cond = pp[ip + sz_p] / sep
+//                      + (z_mult_dat[ip + sz_p] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p]))
+//                      * dp[ip + sz_p] * gravity * z_dir_g;
+
+//         diff = (lower_cond - upper_cond);
+
+
+//         u_old = h
+//                 * PMeanDZ(permzp[ip], permzp[ip + sz_p],
+//                           z_mult_dat[ip], z_mult_dat[ip + sz_p])
+//                 * diff
+//                 * RPMean(lower_cond, upper_cond,
+//                          rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p])
+//                 / viscosity;
+
+//         sep = dz * z_mult_dat[ip];
+
+//         lower_cond = (pp[ip] / sep) - 0.25 * dp[ip] * gravity * z_dir_g;
+//         upper_cond = (value / sep) + 0.25 * dp[ip] * gravity * z_dir_g;
+
+//         diff = lower_cond - upper_cond;
+//         u_new = RPMean(lower_cond, upper_cond,
+//                        rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p]);
+//         u_new = u_new * h *
+//                 (permzp[ip] / viscosity)
+//                 * 2.0 * diff;
+//       }),
+//                            CellFinalize(
+//       {
+// /* Remove the boundary term computed above */
+//         fp[ip] -= dt * dir * u_old;
+
+//         /* Add the correct boundary term */
+//         fp[ip] += dt * dir * u_new;
+
+//         vel_vec[vel_idx] = u_new / h;
+//       }),
+//                            AfterAllCells(DoNothing)
+//                            ); /* End DirichletBC */
+
+      ForPatchCellsPerFace(BC_ALL,
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int dir, ip;
-                                  int vel_idx, vx_l, vy_l, vz_l;
-                                  double *vel_vec;
-                                  double diff, u_new, u_old, value, h;
-                                  double x_dir_g, y_dir_g, z_dir_g;
-                                  double sep, lower_cond, upper_cond;
-                                  double del_x_slope, del_y_slope; ),
+                           Locals(
+                            int ip;
+                            double du, dv, dw, idu, idv, idw;
+                            double u_old;
+                           ),
                            CellSetup(
       {
-        dir = 0;
         ip = SubvectorEltIndex(p_sub, i, j, k);
 
-        vel_idx = 0;
-        vx_l = SubvectorEltIndex(vx_sub, i, j, k);
-        vy_l = SubvectorEltIndex(vy_sub, i, j, k);
-        vz_l = SubvectorEltIndex(vz_sub, i, j, k);
-        vel_vec = NULL;
-        h = 0.0;
+        du = SubgridDX(subgrid);
+        dv = SubgridDY(subgrid);
+        dw = SubgridDZ(subgrid);
 
-        diff = 0.0e0;
-        u_new = 0.0e0;
-        u_old = 0.0e0;
-
-        value = bc_patch_values[ival];
-        x_dir_g = 0.0;
-        y_dir_g = 0.0;
-        z_dir_g = 1.0;
-
-        sep = 0.0;
-        lower_cond = 0.0;
-        upper_cond = 0.0;
-        // del_x_slope = (1.0 / cos(atan(x_ssl_dat[io])));
-        // del_y_slope = (1.0 / cos(atan(y_ssl_dat[io])));
-
-        del_x_slope = 1.0;
-        del_y_slope = 1.0;
+        idu = 1.0 / du;
+        idv = 1.0 / dv;
+        idw = 1.0 / dw;
+        
+        u_old = 0.0;
       }),
                            FACE(LeftFace,
       {
-        h = ffx * z_mult_dat[ip] * del_y_slope;
-        vel_vec = vx;
-        vel_idx = vx_l;
+        StencilIndx S;
+        SubvectorStencilIndxRgt(&S, p_sub, subgrid, i-1, j, k);
 
-        dir = -1;
-        diff = pp[ip - 1] - pp[ip];
-        u_old = h
-                * PMean(pp[ip - 1], pp[ip], permxp[ip - 1], permxp[ip])
-                * (diff / dx * del_x_slope)
-                * RPMean(pp[ip - 1], pp[ip],
-                         rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip])
-                / viscosity;
-
-        u_old += h *
-                 PMean(pp[ip - 1], pp[ip],
-                       permxp[ip - 1], permxp[ip])
-                 * (-x_dir_g)
-                 * RPMean(pp[ip - 1], pp[ip], rpp[ip - 1] * dp[ip - 1],
-                          rpp[ip] * dp[ip])
-                 / viscosity;
-
-        diff = value - pp[ip];
-        u_new = RPMean(value, pp[ip],
-                       rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip]);
-        u_new = u_new * h
-                * (permxp[ip] / viscosity)
-                * 2.0 * (diff / dx);
+        double u_rgt = RichardsDivergenceRgt(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = -u_rgt;
       }),
                            FACE(RightFace,
       {
-        h = ffx * z_mult_dat[ip] * del_y_slope;
-        vel_vec = vx;
-        vel_idx = vx_l + 1;
+        StencilIndx S;
+        SubvectorStencilIndxRgt(&S, p_sub, subgrid, i, j, k);
 
-        dir = 1;
-        diff = pp[ip] - pp[ip + 1];
-        u_old = h
-                * PMean(pp[ip], pp[ip + 1], permxp[ip], permxp[ip + 1])
-                * (diff / dx * del_x_slope)
-                * RPMean(pp[ip], pp[ip + 1],
-                         rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1])
-                / viscosity;
-
-        u_old += h
-                 * PMean(pp[ip], pp[ip + 1],
-                         permxp[ip], permxp[ip + 1])
-                 * (-x_dir_g)
-                 * RPMean(pp[ip], pp[ip + 1], rpp[ip] * dp[ip],
-                          rpp[ip + 1] * dp[ip + 1])
-                 / viscosity;
-
-        diff = pp[ip] - value;
-        u_new = RPMean(pp[ip], value,
-                       rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1]);
-        u_new = u_new * h
-                * (permxp[ip] / viscosity)
-                * 2.0 * (diff / dx);
+        double u_rgt = RichardsDivergenceRgt(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = u_rgt;
       }),
                            FACE(DownFace,
       {
-        h = ffy * z_mult_dat[ip] * del_x_slope;
-        vel_vec = vy;
-        vel_idx = vy_l;
+        StencilIndx S;
+        SubvectorStencilIndxTop(&S, p_sub, subgrid, i, j-1, k);
 
-        dir = -1;
-        diff = pp[ip - sy_p] - pp[ip];
-        u_old = h
-                * PMean(pp[ip - sy_p], pp[ip],
-                        permyp[ip - sy_p], permyp[ip])
-                * (diff / dy * del_y_slope)
-                * RPMean(pp[ip - sy_p], pp[ip],
-                         rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip])
-                / viscosity;
-
-        u_old += h *
-                 PMean(pp[ip], pp[ip - sy_p], permyp[ip],
-                       permyp[ip - sy_p])
-                 * (-y_dir_g)
-                 * RPMean(pp[ip], pp[ip - sy_p], rpp[ip] * dp[ip],
-                          rpp[ip - sy_p] * dp[ip - sy_p])
-                 / viscosity;
-
-
-        diff = value - pp[ip];
-        u_new = RPMean(value, pp[ip],
-                       rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip]);
-        u_new = u_new * h * (permyp[ip] / viscosity)
-                * 2.0 * (diff / dy);
+        double u_top = RichardsDivergenceTop(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = -u_top;
       }),
                            FACE(UpFace,
       {
-        h = ffy * z_mult_dat[ip] * del_x_slope;
-        vel_vec = vy;
-        vel_idx = vy_l + sy_v;
+        StencilIndx S;
+        SubvectorStencilIndxTop(&S, p_sub, subgrid, i, j, k);
 
-        dir = 1;
-        diff = pp[ip] - pp[ip + sy_p];
-        u_old = h
-                * PMean(pp[ip], pp[ip + sy_p],
-                        permyp[ip], permyp[ip + sy_p])
-                * (diff / dy * del_y_slope)
-                * RPMean(pp[ip], pp[ip + sy_p],
-                         rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p])
-                / viscosity;
-
-        u_old += h
-                 * PMean(pp[ip], pp[ip + sy_p], permyp[ip],
-                         permyp[ip + sy_p])
-                 * (-y_dir_g)
-                 * RPMean(pp[ip], pp[ip + sy_p], rpp[ip] * dp[ip],
-                          rpp[ip + sy_p] * dp[ip + sy_p])
-                 / viscosity;
-
-
-        diff = pp[ip] - value;
-        u_new = RPMean(pp[ip], value,
-                       rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p]);
-        u_new = u_new * h * (permyp[ip] / viscosity)
-                * 2.0 * (diff / dy);
+        double u_top = RichardsDivergenceTop(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = u_top;
       }),
                            FACE(BackFace,
       {
-        h = ffz * del_x_slope * del_y_slope;
-        vel_vec = vz;
-        vel_idx = vz_l;
+        StencilIndx S;
+        SubvectorStencilIndxFrt(&S, p_sub, subgrid, i, j, k-1);
 
-        dir = -1;
-        sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]);                      //RMM
-
-        lower_cond = pp[ip - sz_p] / sep
-                     - (z_mult_dat[ip - sz_p] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip - sz_p] * gravity *
-                     z_dir_g;
-
-        upper_cond = pp[ip] / sep + (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip] * gravity *
-                     z_dir_g;
-
-        diff = (lower_cond - upper_cond);
-
-        u_old = h
-                * PMeanDZ(permzp[ip - sz_p], permzp[ip],
-                          z_mult_dat[ip - sz_p], z_mult_dat[ip])
-                * diff
-                * RPMean(lower_cond, upper_cond,
-                         rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip])
-                / viscosity;
-
-        sep = dz * z_mult_dat[ip];
-
-        lower_cond = value / sep - 0.25 * dp[ip] * gravity;
-        upper_cond = pp[ip] / sep + 0.25 * dp[ip] * gravity;
-        diff = (lower_cond - upper_cond);
-        u_new = RPMean(lower_cond, upper_cond,
-                       rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip]);
-        u_new = u_new * h *
-                (permzp[ip] / viscosity)
-                * 2.0 * diff;
+        double u_frt = RichardsDivergenceFrt(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = -u_frt;
       }),
                            FACE(FrontFace,
       {
-        h = ffz * del_x_slope * del_y_slope;
-        vel_vec = vz;
-        vel_idx = vz_l + sz_v;
+        StencilIndx S;
+        SubvectorStencilIndxFrt(&S, p_sub, subgrid, i, j, k);
 
-        dir = 1;
-
-        /* Calculate upper face velocity.
-         * @RMM added cos to g term to test terrain-following grid
-         */
-
-        sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]);                      //RMM
-
-        lower_cond = pp[ip] / sep - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
-                     z_dir_g;
-
-        upper_cond = pp[ip + sz_p] / sep
-                     + (z_mult_dat[ip + sz_p] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p]))
-                     * dp[ip + sz_p] * gravity * z_dir_g;
-
-        diff = (lower_cond - upper_cond);
-
-
-        u_old = h
-                * PMeanDZ(permzp[ip], permzp[ip + sz_p],
-                          z_mult_dat[ip], z_mult_dat[ip + sz_p])
-                * diff
-                * RPMean(lower_cond, upper_cond,
-                         rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p])
-                / viscosity;
-
-        sep = dz * z_mult_dat[ip];
-
-        lower_cond = (pp[ip] / sep) - 0.25 * dp[ip] * gravity * z_dir_g;
-        upper_cond = (value / sep) + 0.25 * dp[ip] * gravity * z_dir_g;
-
-        diff = lower_cond - upper_cond;
-        u_new = RPMean(lower_cond, upper_cond,
-                       rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p]);
-        u_new = u_new * h *
-                (permzp[ip] / viscosity)
-                * 2.0 * diff;
-      }),
-                           CellFinalize(
-      {
-/* Remove the boundary term computed above */
-        fp[ip] -= dt * dir * u_old;
-
-        /* Add the correct boundary term */
-        fp[ip] += dt * dir * u_new;
-
-        vel_vec[vel_idx] = u_new / h;
-      }),
-                           AfterAllCells(DoNothing)
-                           ); /* End DirichletBC */
-
-      ForPatchCellsPerFace(FluxBC,
-                           BeforeAllCells(DoNothing),
-                           LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int dir, ip;
-                                  int vel_idx, vx_l, vy_l, vz_l;
-                                  double *vel_vec;
-                                  double diff, u_new, u_old, h;
-                                  double x_dir_g, y_dir_g, z_dir_g;
-                                  double sep, lower_cond, upper_cond;
-                                  double del_x_slope, del_y_slope; ),
-                           CellSetup(
-      {
-        dir = 0;
-        ip = SubvectorEltIndex(p_sub, i, j, k);
-
-        vel_idx = 0;
-        vx_l = SubvectorEltIndex(vx_sub, i, j, k);
-        vy_l = SubvectorEltIndex(vy_sub, i, j, k);
-        vz_l = SubvectorEltIndex(vz_sub, i, j, k);
-        vel_vec = NULL;
-        h = 0.0;
-
-        diff = 0.0e0;
-        u_new = 0.0e0;
-        u_old = 0.0e0;
-
-        x_dir_g = 0.0;
-        y_dir_g = 0.0;
-        z_dir_g = 1.0;
-
-        sep = 0.0;
-        lower_cond = 0.0;
-        upper_cond = 0.0;
-
-        del_x_slope = 1.0;
-        del_y_slope = 1.0;
-      }),
-                           FACE(LeftFace,
-      {
-        h = ffx * z_mult_dat[ip] * del_y_slope;
-        vel_vec = vx;
-        vel_idx = vx_l;
-
-        dir = -1;
-        diff = pp[ip - 1] - pp[ip];
-        u_old = h
-                * PMean(pp[ip - 1], pp[ip],
-                        permxp[ip - 1], permxp[ip])
-                * (diff / dx * del_x_slope)
-                * RPMean(pp[ip - 1], pp[ip],
-                         rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip])
-                / viscosity;
-
-        u_old += h
-                 * PMean(pp[ip - 1], pp[ip],
-                         permxp[ip - 1], permxp[ip])
-                 * (-x_dir_g)
-                 * RPMean(pp[ip - 1], pp[ip], rpp[ip - 1] * dp[ip - 1],
-                          rpp[ip] * dp[ip])
-                 / viscosity;
-        u_new = h;
-      }),
-                           FACE(RightFace,
-      {
-        h = ffx * z_mult_dat[ip] * del_y_slope;
-        vel_vec = vx;
-        vel_idx = vx_l + 1;
-
-        dir = 1;
-        diff = pp[ip] - pp[ip + 1];
-        u_old = h
-                * PMean(pp[ip], pp[ip + 1],
-                        permxp[ip], permxp[ip + 1])
-                * (diff / dx * del_x_slope)
-                * RPMean(pp[ip], pp[ip + 1],
-                         rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1])
-                / viscosity;
-
-        u_old += h
-                 * PMean(pp[ip], pp[ip + 1],
-                         permxp[ip], permxp[ip + 1])
-                 * (-x_dir_g)
-                 * RPMean(pp[ip], pp[ip + 1], rpp[ip] * dp[ip],
-                          rpp[ip + 1] * dp[ip + 1])
-                 / viscosity;
-        u_new = h;
-      }),
-                           FACE(DownFace,
-      {
-        h = ffy * z_mult_dat[ip] * del_x_slope;
-        vel_vec = vy;
-        vel_idx = vy_l;
-
-        dir = -1;
-        diff = pp[ip - sy_p] - pp[ip];
-        u_old = h
-                * PMean(pp[ip - sy_p], pp[ip],
-                        permyp[ip - sy_p], permyp[ip])
-                * (diff / dy)
-                * RPMean(pp[ip - sy_p], pp[ip],
-                         rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip])
-                / viscosity;
-
-        u_old += h *
-                 PMean(pp[ip], pp[ip - sy_p], permyp[ip],
-                       permyp[ip - sy_p])
-                 * (-y_dir_g)
-                 * RPMean(pp[ip], pp[ip - sy_p], rpp[ip] * dp[ip],
-                          rpp[ip - sy_p] * dp[ip - sy_p])
-                 / viscosity;
-        u_new = h;
-      }),
-                           FACE(UpFace,
-      {
-        h = ffy * z_mult_dat[ip] * del_x_slope;
-        vel_vec = vy;
-        vel_idx = vy_l + sy_v;
-
-        dir = 1;
-        diff = pp[ip] - pp[ip + sy_p];
-        u_old = h
-                * PMean(pp[ip], pp[ip + sy_p],
-                        permyp[ip], permyp[ip + sy_p])
-                * (diff / dy)
-                * RPMean(pp[ip], pp[ip + sy_p],
-                         rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p])
-                / viscosity;
-
-        u_old += h
-                 * PMean(pp[ip], pp[ip + sy_p], permyp[ip],
-                         permyp[ip + sy_p])
-                 * (-y_dir_g)
-                 * RPMean(pp[ip], pp[ip + sy_p], rpp[ip] * dp[ip],
-                          rpp[ip + sy_p] * dp[ip + sy_p])
-                 / viscosity;
-        u_new = h;
-      }),
-                           FACE(BackFace,
-      {
-        h = ffz * del_x_slope * del_y_slope;
-        vel_vec = vz;
-        vel_idx = vz_l;
-
-        dir = -1;
-        sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]);                      //RMM
-
-        lower_cond = (pp[ip - sz_p] / sep)
-                     - (z_mult_dat[ip - sz_p] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip - sz_p] * gravity *
-                     z_dir_g;
-
-        upper_cond = (pp[ip] / sep) + (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip] * gravity *
-                     z_dir_g;
-
-        diff = lower_cond - upper_cond;
-        u_old = h
-                * PMeanDZ(permzp[ip - sz_p], permzp[ip],
-                          z_mult_dat[ip - sz_p], z_mult_dat[ip])
-                * diff
-                * RPMean(lower_cond, upper_cond,
-                         rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip])
-                / viscosity;
-        u_new = h;
-      }),
-                           FACE(FrontFace,
-      {
-        h = ffz * del_x_slope * del_y_slope;
-        vel_vec = vz;
-        vel_idx = vz_l + sz_v;
-
-        dir = 1;
-        sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]);                      //RMM
-
-        lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
-                     z_dir_g;
-
-        upper_cond = (pp[ip + sz_p] / sep)
-                     + (z_mult_dat[ip + sz_p] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip + sz_p] * gravity *
-                     z_dir_g;
-
-        diff = lower_cond - upper_cond;
-        u_old = h
-                * PMeanDZ(permzp[ip], permzp[ip + sz_p],
-                          z_mult_dat[ip], z_mult_dat[ip + sz_p])
-                * diff
-                * RPMean(lower_cond, upper_cond,
-                         rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p])
-                / viscosity;
-        u_new = h;
+        double u_frt = RichardsDivergenceFrt(&S, my_morphism, pp, dp, rpp,
+                                            permxp, permyp, permzp, gravity,
+                                            viscosity, du, dv, dw);
+        u_old = u_frt;
       }),
                            CellFinalize(
       {
         /* Remove the boundary term computed above */
-        fp[ip] -= dt * dir * u_old;
-        /* Add the correct boundary term */
-        u_new = u_new * bc_patch_values[ival];
-        fp[ip] += dt * dir * u_new;
+        fp[ip] -= dt * u_old;
+      }),
+                           AfterAllCells(DoNothing)
+                           ); /* End BC_ALL */
 
-        vel_vec[vel_idx] = bc_patch_values[ival];
+
+      ForPatchCellsPerFace(FluxBC,
+                           BeforeAllCells(DoNothing),
+                           LoopVars(i, j, k, ival, bc_struct, ipatch, is),
+                           Locals(int ip;
+                                  double u_new;
+                                  double du, dv, dw; 
+                                  double u, v, w;
+                                  v3 zeta_mid;
+                                  double jac_mid;
+                                 ),
+                           CellSetup(
+      {
+        ip = SubvectorEltIndex(p_sub, i, j, k);
+
+        du = SubgridDX(subgrid);
+        dv = SubgridDY(subgrid);
+        dw = SubgridDZ(subgrid);
+
+        u = RealSpaceX(i, SubgridRX(subgrid));
+        v = RealSpaceY(j, SubgridRY(subgrid));
+        w = RealSpaceZ(k, SubgridRZ(subgrid));
+        zeta_mid = v3_init(u, v, w);
+        jac_mid = MorphismJacobian(my_morphism, zeta_mid);
+      }),
+                           FACE(LeftFace,
+      {
+        v3 zeta_lft = v3_init(u-0.5*du, v, w);
+
+        v3basis basis_con_lft = MorphismDelInverse(my_morphism, zeta_lft);
+        double q_con_lft = -bc_patch_values[ival] * v3_norm(basis_con_lft.u);
+
+        double jac_lft = MorphismJacobian(my_morphism, zeta_lft);
+
+        double u_lft = dv * dw * jac_lft * q_con_lft / jac_mid;
+        u_new = u_lft;
+      }),
+                           FACE(RightFace,
+      {
+        v3 zeta_rgt = v3_init(u+0.5*du, v, w);
+
+        v3basis basis_con_rgt = MorphismDelInverse(my_morphism, zeta_rgt);
+        double q_con_rgt = bc_patch_values[ival] * v3_norm(basis_con_rgt.u);
+
+        double jac_rgt = MorphismJacobian(my_morphism, zeta_rgt);
+
+        double u_rgt = dv * dw * jac_rgt * q_con_rgt / jac_mid;
+        u_new = u_rgt;
+      }),
+                           FACE(DownFace,
+      {
+        v3 zeta_bot = v3_init(u, v-0.5*dv, w);
+
+        v3basis basis_con_bot = MorphismDelInverse(my_morphism, zeta_bot);
+        double q_con_bot = -bc_patch_values[ival] * v3_norm(basis_con_bot.v);
+
+        double jac_bot = MorphismJacobian(my_morphism, zeta_bot);
+
+        double u_bot = dw * du * jac_bot * q_con_bot / jac_mid;
+        u_new = u_bot;
+      }),
+                           FACE(UpFace,
+      {
+        v3 zeta_top = v3_init(u, v+0.5*dv, w);
+
+        v3basis basis_con_top = MorphismDelInverse(my_morphism, zeta_top);
+        double q_con_top = bc_patch_values[ival] * v3_norm(basis_con_top.v);
+
+        double jac_top = MorphismJacobian(my_morphism, zeta_top);
+
+        double u_top = dw * du * jac_top * q_con_top / jac_mid;
+        u_new = u_top;
+      }),
+                           FACE(BackFace,
+      {
+        v3 zeta_bck = v3_init(u, v, w-0.5*dw);
+
+        v3basis basis_con_bck = MorphismDelInverse(my_morphism, zeta_bck);
+        double q_con_bck = -bc_patch_values[ival] * v3_norm(basis_con_bck.w);
+
+        double jac_bck = MorphismJacobian(my_morphism, zeta_bck);
+
+        double u_bck = du * dv * jac_bck * q_con_bck / jac_mid;
+        u_new = u_bck;
+      }),
+                           FACE(FrontFace,
+      {
+        v3 zeta_frt = v3_init(u, v, w+0.5*dw);
+
+        v3basis basis_con_frt = MorphismDelInverse(my_morphism, zeta_frt);
+        double q_con_frt = bc_patch_values[ival] * v3_norm(basis_con_frt.w);
+
+        double jac_frt = MorphismJacobian(my_morphism, zeta_frt);
+
+        double u_frt = du * dv * jac_frt * q_con_frt / jac_mid;
+        u_new = u_frt;
+      }),
+                           CellFinalize(
+      {
+        /* Add the correct boundary term */
+        fp[ip] += dt * u_new;
       }),
                            AfterAllCells(DoNothing)
                            ); /* End FluxBC */
+
+      // ForPatchCellsPerFace(FluxBC,
+      //                      BeforeAllCells(DoNothing),
+      //                      LoopVars(i, j, k, ival, bc_struct, ipatch, is),
+      //                      Locals(int dir, ip;
+      //                             int vel_idx, vx_l, vy_l, vz_l;
+      //                             double *vel_vec;
+      //                             double diff, u_new, u_old, h;
+      //                             double x_dir_g, y_dir_g, z_dir_g;
+      //                             double sep, lower_cond, upper_cond;
+      //                             double del_x_slope, del_y_slope; ),
+      //                      CellSetup(
+      // {
+      //   dir = 0;
+      //   ip = SubvectorEltIndex(p_sub, i, j, k);
+
+      //   vel_idx = 0;
+      //   vx_l = SubvectorEltIndex(vx_sub, i, j, k);
+      //   vy_l = SubvectorEltIndex(vy_sub, i, j, k);
+      //   vz_l = SubvectorEltIndex(vz_sub, i, j, k);
+      //   vel_vec = NULL;
+      //   h = 0.0;
+
+      //   diff = 0.0e0;
+      //   u_new = 0.0e0;
+      //   u_old = 0.0e0;
+
+      //   x_dir_g = 0.0;
+      //   y_dir_g = 0.0;
+      //   z_dir_g = 1.0;
+
+      //   sep = 0.0;
+      //   lower_cond = 0.0;
+      //   upper_cond = 0.0;
+
+      //   del_x_slope = 1.0;
+      //   del_y_slope = 1.0;
+      // }),
+      //                      FACE(LeftFace,
+      // {
+      //   h = ffx * z_mult_dat[ip] * del_y_slope;
+      //   vel_vec = vx;
+      //   vel_idx = vx_l;
+
+      //   dir = -1;
+      //   diff = pp[ip - 1] - pp[ip];
+      //   u_old = h
+      //           * PMean(pp[ip - 1], pp[ip],
+      //                   permxp[ip - 1], permxp[ip])
+      //           * (diff / dx * del_x_slope)
+      //           * RPMean(pp[ip - 1], pp[ip],
+      //                    rpp[ip - 1] * dp[ip - 1], rpp[ip] * dp[ip])
+      //           / viscosity;
+
+      //   u_old += h
+      //            * PMean(pp[ip - 1], pp[ip],
+      //                    permxp[ip - 1], permxp[ip])
+      //            * (-x_dir_g)
+      //            * RPMean(pp[ip - 1], pp[ip], rpp[ip - 1] * dp[ip - 1],
+      //                     rpp[ip] * dp[ip])
+      //            / viscosity;
+      //   u_new = h;
+      // }),
+      //                      FACE(RightFace,
+      // {
+      //   h = ffx * z_mult_dat[ip] * del_y_slope;
+      //   vel_vec = vx;
+      //   vel_idx = vx_l + 1;
+
+      //   dir = 1;
+      //   diff = pp[ip] - pp[ip + 1];
+      //   u_old = h
+      //           * PMean(pp[ip], pp[ip + 1],
+      //                   permxp[ip], permxp[ip + 1])
+      //           * (diff / dx * del_x_slope)
+      //           * RPMean(pp[ip], pp[ip + 1],
+      //                    rpp[ip] * dp[ip], rpp[ip + 1] * dp[ip + 1])
+      //           / viscosity;
+
+      //   u_old += h
+      //            * PMean(pp[ip], pp[ip + 1],
+      //                    permxp[ip], permxp[ip + 1])
+      //            * (-x_dir_g)
+      //            * RPMean(pp[ip], pp[ip + 1], rpp[ip] * dp[ip],
+      //                     rpp[ip + 1] * dp[ip + 1])
+      //            / viscosity;
+      //   u_new = h;
+      // }),
+      //                      FACE(DownFace,
+      // {
+      //   h = ffy * z_mult_dat[ip] * del_x_slope;
+      //   vel_vec = vy;
+      //   vel_idx = vy_l;
+
+      //   dir = -1;
+      //   diff = pp[ip - sy_p] - pp[ip];
+      //   u_old = h
+      //           * PMean(pp[ip - sy_p], pp[ip],
+      //                   permyp[ip - sy_p], permyp[ip])
+      //           * (diff / dy)
+      //           * RPMean(pp[ip - sy_p], pp[ip],
+      //                    rpp[ip - sy_p] * dp[ip - sy_p], rpp[ip] * dp[ip])
+      //           / viscosity;
+
+      //   u_old += h *
+      //            PMean(pp[ip], pp[ip - sy_p], permyp[ip],
+      //                  permyp[ip - sy_p])
+      //            * (-y_dir_g)
+      //            * RPMean(pp[ip], pp[ip - sy_p], rpp[ip] * dp[ip],
+      //                     rpp[ip - sy_p] * dp[ip - sy_p])
+      //            / viscosity;
+      //   u_new = h;
+      // }),
+      //                      FACE(UpFace,
+      // {
+      //   h = ffy * z_mult_dat[ip] * del_x_slope;
+      //   vel_vec = vy;
+      //   vel_idx = vy_l + sy_v;
+
+      //   dir = 1;
+      //   diff = pp[ip] - pp[ip + sy_p];
+      //   u_old = h
+      //           * PMean(pp[ip], pp[ip + sy_p],
+      //                   permyp[ip], permyp[ip + sy_p])
+      //           * (diff / dy)
+      //           * RPMean(pp[ip], pp[ip + sy_p],
+      //                    rpp[ip] * dp[ip], rpp[ip + sy_p] * dp[ip + sy_p])
+      //           / viscosity;
+
+      //   u_old += h
+      //            * PMean(pp[ip], pp[ip + sy_p], permyp[ip],
+      //                    permyp[ip + sy_p])
+      //            * (-y_dir_g)
+      //            * RPMean(pp[ip], pp[ip + sy_p], rpp[ip] * dp[ip],
+      //                     rpp[ip + sy_p] * dp[ip + sy_p])
+      //            / viscosity;
+      //   u_new = h;
+      // }),
+      //                      FACE(BackFace,
+      // {
+      //   h = ffz * del_x_slope * del_y_slope;
+      //   vel_vec = vz;
+      //   vel_idx = vz_l;
+
+      //   dir = -1;
+      //   sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]);                      //RMM
+
+      //   lower_cond = (pp[ip - sz_p] / sep)
+      //                - (z_mult_dat[ip - sz_p] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip - sz_p] * gravity *
+      //                z_dir_g;
+
+      //   upper_cond = (pp[ip] / sep) + (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip - sz_p])) * dp[ip] * gravity *
+      //                z_dir_g;
+
+      //   diff = lower_cond - upper_cond;
+      //   u_old = h
+      //           * PMeanDZ(permzp[ip - sz_p], permzp[ip],
+      //                     z_mult_dat[ip - sz_p], z_mult_dat[ip])
+      //           * diff
+      //           * RPMean(lower_cond, upper_cond,
+      //                    rpp[ip - sz_p] * dp[ip - sz_p], rpp[ip] * dp[ip])
+      //           / viscosity;
+      //   u_new = h;
+      // }),
+      //                      FACE(FrontFace,
+      // {
+      //   h = ffz * del_x_slope * del_y_slope;
+      //   vel_vec = vz;
+      //   vel_idx = vz_l + sz_v;
+
+      //   dir = 1;
+      //   sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]);                      //RMM
+
+      //   lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
+      //                z_dir_g;
+
+      //   upper_cond = (pp[ip + sz_p] / sep)
+      //                + (z_mult_dat[ip + sz_p] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip + sz_p] * gravity *
+      //                z_dir_g;
+
+      //   diff = lower_cond - upper_cond;
+      //   u_old = h
+      //           * PMeanDZ(permzp[ip], permzp[ip + sz_p],
+      //                     z_mult_dat[ip], z_mult_dat[ip + sz_p])
+      //           * diff
+      //           * RPMean(lower_cond, upper_cond,
+      //                    rpp[ip] * dp[ip], rpp[ip + sz_p] * dp[ip + sz_p])
+      //           / viscosity;
+      //   u_new = h;
+      // }),
+      //                      CellFinalize(
+      // {
+      //   /* Remove the boundary term computed above */
+      //   fp[ip] -= dt * dir * u_old;
+      //   /* Add the correct boundary term */
+      //   u_new = u_new * bc_patch_values[ival];
+      //   fp[ip] += dt * dir * u_new;
+
+      //   vel_vec[vel_idx] = bc_patch_values[ival];
+      // }),
+      //                      AfterAllCells(DoNothing)
+      //                      ); /* End FluxBC */
 
       ForPatchCellsPerFace(OverlandBC,
                            BeforeAllCells(
@@ -2217,6 +2427,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                                                              time, pressure, CALCFCN));
 
   EndTiming(public_xtra->time_index);
+
+  PFModuleFreeModule(morphism_module);
+  tfree(my_morphism);
 
   FreeVector(KW);
   FreeVector(KE);

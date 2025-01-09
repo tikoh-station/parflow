@@ -116,12 +116,14 @@ set (SRC_FILES_CONST advect.F
   turning_bandsRF.c
   usergrid_input.c
   v3algebra.c
+  v3basis.c
   w_jacobi.c
   well.c
   well_package.c
   wells_lb.c
   reservoir.c
   reservoir_package.c
+  richards_div_eval.c
   wrf_parflow.c
   write_clm_netcdf.c
   write_parflow_binary.c
