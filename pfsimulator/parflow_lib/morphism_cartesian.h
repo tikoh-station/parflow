@@ -42,7 +42,8 @@
 #include "v3algebra.h"
 #include "morphism.h"
 
-void Cartesian(Morphism *my_morphism);
+typedef void (*CartesianInvoke)(Morphism **my_morphism);
+void Cartesian(Morphism **my_morphism);
 PFModule* CartesianInitInstanceXtra();
 void CartesianFreeInstanceXtra();
 PFModule* CartesianNewPublicXtra();

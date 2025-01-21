@@ -52,11 +52,11 @@ typedef void InstanceXtra;
 /*-------------------------------------------------------------------------
  * Cartesian
  *-------------------------------------------------------------------------*/
-void Cartesian(Morphism *my_morphism)
+void Cartesian(Morphism **my_morphism)
 {
   PFModule *this_module = ThisPFModule;
   PublicXtra *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
-  my_morphism = public_xtra->my_morphism;
+  *my_morphism = public_xtra->my_morphism;
   return;
 }
 

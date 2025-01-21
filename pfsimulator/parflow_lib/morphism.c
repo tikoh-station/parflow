@@ -30,24 +30,20 @@
 
 v3 MorphismToContravariant(v3 vec, v3basis basis_contravariant)
 {
-  v3 res = v3basis_projection_onto(basis_contravariant, vec);
-  return res;
+  return v3basis_projection_onto(basis_contravariant, vec);
 }
 
 v3 MorphismToCovariant(v3 vec, v3basis basis_covariant)
 {
-  v3 res = v3basis_projection_onto(basis_covariant, vec);
-  return res;
+  return v3basis_projection_onto(basis_covariant, vec);
 }
 
 v3 MorphismFromContravariant(v3 vec, v3basis basis_covariant)
 {
-  v3 res = v3basis_projection_from(basis_covariant, vec);
-  return res;
+  return v3basis_projection_from(basis_covariant, vec);
 }
 
 v3 MorphismFromCovariant(v3 vec, v3basis basis_contravariant)
 {
-  v3 res = v3basis_projection_from(basis_contravariant, vec);
-  return res;
+  return v3basis_projection_from(basis_contravariant, vec);
 }

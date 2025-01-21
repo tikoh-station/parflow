@@ -815,11 +815,11 @@ SetupRichards(PFModule * this_module)
     /* SGS FIXME why are these here and not created in instance_xtra ? */
     instance_xtra->pressure =
       NewVectorType(grid, 1, 1, vector_cell_centered);
-    InitVectorAll(instance_xtra->pressure, -FLT_MAX);
+    InitVectorAll(instance_xtra->pressure, 0.0);
 
     instance_xtra->saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
-    InitVectorAll(instance_xtra->saturation, -FLT_MAX);
+    InitVectorAll(instance_xtra->saturation, 0.0);
 
     instance_xtra->density =
       NewVectorType(grid, 1, 1, vector_cell_centered);

@@ -30,15 +30,13 @@
 
 v3 v3basis_projection_onto(v3basis bas, v3 vec)
 {
-  v3 res = {v3_dot(bas.u, vec), v3_dot(bas.v, vec), v3_dot(bas.w, vec)};
-  return res;
+  return v3_init(v3_dot(bas.u, vec), v3_dot(bas.v, vec), v3_dot(bas.w, vec));
 }
 
 v3 v3basis_projection_from(v3basis bas, v3 vec)
 {
-  v3 res = v3_add(v3_scale(vec.u, bas.u), 
+  return v3_add(v3_scale(vec.u, bas.u), 
     v3_add(v3_scale(vec.v, bas.v), v3_scale(vec.w, bas.w)));
-  return res;
 }
 
 v3basis v3basis_reciprocal(v3basis bas)

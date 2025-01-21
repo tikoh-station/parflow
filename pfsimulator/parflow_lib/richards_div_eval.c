@@ -163,32 +163,52 @@ double RichardsDivergenceRgt(StencilIndx *S, Morphism *my_morphism, double *pp, 
       0.25 * idw * (pp[S->rgt_frt] - pp[S->rgt_bck] + pp[S->frt] - pp[S->bck])
     );
 
-  double upstreams_rgt = gravity * RPMean(pp[S->mid], pp[S->rgt], 
-                                          dp[S->mid] * rpp[S->mid], 
-                                          dp[S->rgt] * rpp[S->rgt]) 
-                          / viscosity;
-  double weight_density_rgt = gravity * (dp[S->rgt] - dp[S->mid]) * idu;
-  v3 grad_h_cov_rgt = v3_subtract(v3_scale(upstreams_rgt, grad_p_cov_rgt),
-                                  v3_scale(weight_density_rgt, grad_z_cov_rgt));
-
-  v3basis basis_cov_rgt_onequarter = 
-      MorphismDel(my_morphism, v3_init(u+0.25*du, v, w));
-  v3basis basis_cov_rgt_threequarter = 
-      MorphismDel(my_morphism, v3_init(u+0.75*du, v, w));
-
-  m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                          1.0 / permyp[S->mid],
-                          1.0 / permzp[S->mid]);
-  m3 iK_rgt = m3_diagonal(1.0 / permxp[S->rgt],
-                          1.0 / permyp[S->rgt],
-                          1.0 / permzp[S->rgt]);
-
-  m3 K_dot_basis_con_rgt = m3_factor(2, m3_inverse(m3_add(
-    m3v3basis_left_dot(basis_cov_rgt_onequarter, iK_mid),
-    m3v3basis_left_dot(basis_cov_rgt_threequarter, iK_mid)
-  )));
+  double upstreams_rgt = RPMean(pp[S->mid], pp[S->rgt], 
+                                dp[S->mid] * rpp[S->mid], 
+                                dp[S->rgt] * rpp[S->rgt]) / viscosity;
+  double weight_density_rgt = -0.5 * gravity * (dp[S->rgt] + dp[S->mid]);
+  v3 grad_h_cov_rgt = v3_scale(upstreams_rgt, v3_subtract(grad_p_cov_rgt, v3_scale(weight_density_rgt, grad_z_cov_rgt)));
 
   v3basis basis_con_rgt = MorphismDelInverse(my_morphism, zeta_rgt);
+
+  m3 K_dot_basis_con_rgt;
+  double K_rgt_det = permxp[S->rgt] * permyp[S->rgt] * permzp[S->rgt];
+  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  if(K_rgt_det < 1e-16) // if rgt matrix is not invertible
+  {
+    m3 K_rgt = m3_diagonal(permxp[S->rgt], 
+                           permyp[S->rgt], 
+                           permzp[S->rgt]);
+
+    K_dot_basis_con_rgt = m3v3basis_right_dot(K_rgt, basis_con_rgt);
+  }
+  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  {
+    m3 K_mid = m3_diagonal(permxp[S->mid], 
+                           permyp[S->mid], 
+                           permzp[S->mid]);
+
+    K_dot_basis_con_rgt = m3v3basis_right_dot(K_mid, basis_con_rgt);
+  }
+  else
+  {
+    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+                            1.0 / permyp[S->mid],
+                            1.0 / permzp[S->mid]);
+    m3 iK_rgt = m3_diagonal(1.0 / permxp[S->rgt],
+                            1.0 / permyp[S->rgt],
+                            1.0 / permzp[S->rgt]);
+
+    v3basis basis_cov_rgt_onequarter = 
+        MorphismDel(my_morphism, v3_init(u+0.25*du, v, w));
+    v3basis basis_cov_rgt_threequarter = 
+        MorphismDel(my_morphism, v3_init(u+0.75*du, v, w));
+
+    K_dot_basis_con_rgt = m3_factor(2, m3_inverse(m3_add(
+      m3v3basis_left_dot(basis_cov_rgt_onequarter, iK_mid),
+      m3v3basis_left_dot(basis_cov_rgt_threequarter, iK_rgt)
+    )));
+  }
 
   v3 K_con_rgt = m3v3_left_dot(basis_con_rgt.u, K_dot_basis_con_rgt);
 
@@ -226,32 +246,52 @@ double RichardsDivergenceTop(StencilIndx *S, Morphism *my_morphism, double *pp, 
       0.25 * idw * (pp[S->top_frt] - pp[S->top_bck] + pp[S->frt] - pp[S->bck])
     );
 
-  double upstreams_top = gravity * RPMean(pp[S->mid], pp[S->top], 
-                                          dp[S->mid] * rpp[S->mid], 
-                                          dp[S->top] * rpp[S->top]) 
-                          / viscosity;
-  double weight_density_top = gravity * (dp[S->top] - dp[S->mid]) * idv;
-  v3 grad_h_cov_top = v3_subtract(v3_scale(upstreams_top, grad_p_cov_top),
-                                  v3_scale(weight_density_top, grad_z_cov_top));
-
-  v3basis basis_cov_top_onequarter = 
-      MorphismDel(my_morphism, v3_init(u, v+0.25*dv, w));
-  v3basis basis_cov_top_threequarter = 
-      MorphismDel(my_morphism, v3_init(u, v+0.75*dv, w));
-
-  m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                          1.0 / permyp[S->mid],
-                          1.0 / permzp[S->mid]);
-  m3 iK_top = m3_diagonal(1.0 / permxp[S->top],
-                          1.0 / permyp[S->top],
-                          1.0 / permzp[S->top]);
-
-  m3 K_dot_basis_con_top = m3_factor(2, m3_inverse(m3_add(
-    m3v3basis_left_dot(basis_cov_top_onequarter, iK_mid),
-    m3v3basis_left_dot(basis_cov_top_threequarter, iK_mid)
-  )));
+  double upstreams_top = RPMean(pp[S->mid], pp[S->top], 
+                                dp[S->mid] * rpp[S->mid], 
+                                dp[S->top] * rpp[S->top]) / viscosity;
+  double weight_density_top = -0.5 * gravity * (dp[S->top] + dp[S->mid]);
+  v3 grad_h_cov_top = v3_scale(upstreams_top, v3_subtract(grad_p_cov_top, v3_scale(weight_density_top, grad_z_cov_top)));
 
   v3basis basis_con_top = MorphismDelInverse(my_morphism, zeta_top);
+
+  m3 K_dot_basis_con_top;
+  double K_top_det = permxp[S->top] * permyp[S->top] * permzp[S->top];
+  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  if(K_top_det < 1e-16) // if top matrix is not invertible
+  {
+    m3 K_top = m3_diagonal(permxp[S->top], 
+                           permyp[S->top], 
+                           permzp[S->top]);
+
+    K_dot_basis_con_top = m3v3basis_right_dot(K_top, basis_con_top);
+  }
+  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  {
+    m3 K_mid = m3_diagonal(permxp[S->mid], 
+                           permyp[S->mid], 
+                           permzp[S->mid]);
+
+    K_dot_basis_con_top = m3v3basis_right_dot(K_mid, basis_con_top);
+  }
+  else
+  {
+    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+                            1.0 / permyp[S->mid],
+                            1.0 / permzp[S->mid]);
+    m3 iK_top = m3_diagonal(1.0 / permxp[S->top],
+                            1.0 / permyp[S->top],
+                            1.0 / permzp[S->top]);
+
+    v3basis basis_cov_top_onequarter = 
+        MorphismDel(my_morphism, v3_init(u, v+0.25*dv, w));
+    v3basis basis_cov_top_threequarter = 
+        MorphismDel(my_morphism, v3_init(u, v+0.75*dv, w));
+
+    K_dot_basis_con_top = m3_factor(2, m3_inverse(m3_add(
+      m3v3basis_left_dot(basis_cov_top_onequarter, iK_mid),
+      m3v3basis_left_dot(basis_cov_top_threequarter, iK_top)
+    )));
+  }
 
   v3 K_con_top = m3v3_left_dot(basis_con_top.v, K_dot_basis_con_top);
 
@@ -289,32 +329,52 @@ double RichardsDivergenceFrt(StencilIndx *S, Morphism *my_morphism, double *pp, 
       idw * (pp[S->frt] - pp[S->mid])
     );
 
-  double upstreams_frt = gravity * RPMean(pp[S->mid], pp[S->frt], 
-                                          dp[S->mid] * rpp[S->mid], 
-                                          dp[S->frt] * rpp[S->frt]) 
-                          / viscosity;
-  double weight_density_frt = gravity * (dp[S->frt] - dp[S->mid]) * idw;
-  v3 grad_h_cov_frt = v3_subtract(v3_scale(upstreams_frt, grad_p_cov_frt),
-                                  v3_scale(weight_density_frt, grad_z_cov_frt));
-
-  v3basis basis_cov_frt_onequarter = 
-      MorphismDel(my_morphism, v3_init(u, v, w+0.25*dw));
-  v3basis basis_cov_frt_threequarter = 
-      MorphismDel(my_morphism, v3_init(u, v, w+0.75*dw));
-
-  m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                          1.0 / permyp[S->mid],
-                          1.0 / permzp[S->mid]);
-  m3 iK_frt = m3_diagonal(1.0 / permxp[S->frt],
-                          1.0 / permyp[S->frt],
-                          1.0 / permzp[S->frt]);
-
-  m3 K_dot_basis_con_frt = m3_factor(2, m3_inverse(m3_add(
-    m3v3basis_left_dot(basis_cov_frt_onequarter, iK_mid),
-    m3v3basis_left_dot(basis_cov_frt_threequarter, iK_mid)
-  )));
+  double upstreams_frt = RPMean(pp[S->mid], pp[S->frt], 
+                                dp[S->mid] * rpp[S->mid], 
+                                dp[S->frt] * rpp[S->frt]) / viscosity;
+  double weight_density_frt = -0.5 * gravity * (dp[S->frt] + dp[S->mid]);
+  v3 grad_h_cov_frt = v3_scale(upstreams_frt, v3_subtract(grad_p_cov_frt, v3_scale(weight_density_frt, grad_z_cov_frt)));
 
   v3basis basis_con_frt = MorphismDelInverse(my_morphism, zeta_frt);
+
+  m3 K_dot_basis_con_frt;
+  double K_frt_det = permxp[S->frt] * permyp[S->frt] * permzp[S->frt];
+  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  if(K_frt_det < 1e-16) // if frt matrix is not invertible
+  {
+    m3 K_frt = m3_diagonal(permxp[S->frt], 
+                           permyp[S->frt], 
+                           permzp[S->frt]);
+
+    K_dot_basis_con_frt = m3v3basis_right_dot(K_frt, basis_con_frt);
+  }
+  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  {
+    m3 K_mid = m3_diagonal(permxp[S->mid], 
+                           permyp[S->mid], 
+                           permzp[S->mid]);
+
+    K_dot_basis_con_frt = m3v3basis_right_dot(K_mid, basis_con_frt);
+  }
+  else
+  {
+    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+                            1.0 / permyp[S->mid],
+                            1.0 / permzp[S->mid]);
+    m3 iK_frt = m3_diagonal(1.0 / permxp[S->frt],
+                            1.0 / permyp[S->frt],
+                            1.0 / permzp[S->frt]);
+
+    v3basis basis_cov_frt_onequarter = 
+        MorphismDel(my_morphism, v3_init(u, v, w+0.25*dw));
+    v3basis basis_cov_frt_threequarter = 
+        MorphismDel(my_morphism, v3_init(u, v, w+0.75*dw));
+
+    K_dot_basis_con_frt = m3_factor(2, m3_inverse(m3_add(
+      m3v3basis_left_dot(basis_cov_frt_onequarter, iK_mid),
+      m3v3basis_left_dot(basis_cov_frt_threequarter, iK_frt)
+    )));
+  }
 
   v3 K_con_frt = m3v3_left_dot(basis_con_frt.w, K_dot_basis_con_frt);
 

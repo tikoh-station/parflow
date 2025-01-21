@@ -34,10 +34,6 @@ typedef struct {
 } v3;
 
 typedef struct {
-  v3 u, v, w;
-} v3_basis;
-
-typedef struct {
   double uu, uv, uw, vu, vv, vw, wu, wv, ww;
 } m3;
 
@@ -45,12 +41,10 @@ v3 v3_init(double u, double v, double w);
 v3 v3_scale(double c, v3 A);
 v3 v3_add(v3 A, v3 B);
 v3 v3_subtract(v3 A, v3 B);
-v3 v3_linear_sum(double a, v3 A, double b, v3 B);
+v3 v3_linear_combo(double a, v3 A, double b, v3 B);
 double v3_dot(v3 A, v3 B);
 v3 v3_cross(v3 A, v3 B);
 double v3_norm(v3 A);
-
-v3 v3_basis_project(v3_basis bas, v3 vec);
 
 m3 m3_diagonal(double uu, double vv, double ww);
 m3 m3_factor(double c, m3 M);
