@@ -31,7 +31,8 @@
 #include "llnltyps.h"
 //#include "math.h"
 #include "float.h"
-#include "morphism_cartesian.h"
+// #include "morphism_cartesian.h"
+#include "morphism_terrain_following.h"
 #include "richards_div_eval.h"
 
 /*---------------------------------------------------------------------
@@ -540,9 +541,10 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
 
   /* Calculate contributions from second order derivatives and gravity */
-  PFModule *morphism_module = PFModuleNewModule(Cartesian, ());
+  // PFModule *morphism_module = PFModuleNewModule(Cartesian, ());
+  PFModule *morphism_module = PFModuleNewModule(TerrainFollowing, ());
   Morphism *my_morphism = NULL;
-  PFModuleInvokeType(CartesianInvoke, morphism_module, (&my_morphism));
+  PFModuleInvokeType(TerrainFollowingInvoke, morphism_module, (&my_morphism));
 
   ForSubgridI(is, GridSubgrids(grid))
   {

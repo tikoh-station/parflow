@@ -39,7 +39,6 @@
 #ifndef _MORPHISM_CARTESIAN_HEADER
 #define _MORPHISM_CARTESIAN_HEADER
 
-#include "v3algebra.h"
 #include "morphism.h"
 
 typedef void (*CartesianInvoke)(Morphism **my_morphism);
@@ -52,8 +51,8 @@ int CartesianSizeOfTempData();
 
 v3 CartesianEval(PFModule *morphism_core, v3 zeta);
 v3 CartesianInverse(PFModule *morphism_core, v3 x);
-v3basis CartesianDel(PFModule *morphism_core, v3 x);
-v3basis CartesianDelInverse(PFModule *morphism_core, v3 x);
+v3basis CartesianDel(PFModule *morphism_core, v3 zeta);
+v3basis CartesianDelInverse(PFModule *morphism_core, v3 zeta);
 double CartesianJacobian(PFModule *morphism_core, v3 zeta);
 
 v3 CartesianToContravariant(v3 vec, v3basis basis_contravariant);

@@ -37,7 +37,7 @@
 *****************************************************************************/
 
 #include "morphism_cartesian.h"
-#include "globals.h"
+// #include "globals.h"
 
 /*--------------------------------------------------------------------------
  * Structures
@@ -152,13 +152,13 @@ v3 CartesianInverse(PFModule *morphism_core, v3 x)
   return x;
 }
 
-v3basis CartesianDel(PFModule *morphism_core, v3 x)
+v3basis CartesianDel(PFModule *morphism_core, v3 zeta)
 {
   v3basis del = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
   return del;
 }
 
-v3basis CartesianDelInverse(PFModule *morphism_core, v3 x)
+v3basis CartesianDelInverse(PFModule *morphism_core, v3 zeta)
 {
   v3basis del_inverse = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
   return del_inverse;

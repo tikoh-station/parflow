@@ -29,19 +29,25 @@
 #ifndef _MORPHISM_TERRAIN_FOLLOWING_HEADER
 #define _MORPHISM_TERRAIN_FOLLOWING_HEADER
 
-#include "parflow.h"
+#include "morphism.h"
 
-void TerrainFollowing(Morphism *my_morphism);
+typedef void (*TerrainFollowingInvoke)(Morphism **my_morphism);
+void TerrainFollowing(Morphism **my_morphism);
 PFModule* TerrainFollowingInitInstanceXtra();
 void TerrainFollowingFreeInstanceXtra();
 PFModule* TerrainFollowingNewPublicXtra();
 void  TerrainFollowingFreePublicXtra();
 int  TerrainFollowingSizeOfTempData();
 
-v3 TerrainFollowingEval(const v3 zeta);
-v3 TerrainFollowingInverse(const v3 x);
-m3 TerrainFollowingDel(const v3 zeta);
-m3 TerrainFollowingDelInverse(const v3 zeta);
-double TerrainFollowingJacobian(const v3 zeta);
+v3 TerrainFollowingEval(PFModule *morphism_core, v3 zeta);
+v3 TerrainFollowingInverse(PFModule *morphism_core, v3 x);
+v3basis TerrainFollowingDel(PFModule *morphism_core, v3 zeta);
+v3basis TerrainFollowingDelInverse(PFModule *morphism_core, v3 zeta);
+double TerrainFollowingJacobian(PFModule *morphism_core, v3 zeta);
+
+v3 TerrainFollowingToContravariant(v3 vec, v3basis basis_contravariant);
+v3 TerrainFollowingToCovariant(v3 vec, v3basis basis_covariant);
+v3 TerrainFollowingFromContravariant(v3 vec, v3basis basis_contravariant);
+v3 TerrainFollowingFromCovariant(v3 vec, v3basis basis_covariant);
 
 #endif // _MORPHISM_TERRAIN_FOLLOWING_HEADER
