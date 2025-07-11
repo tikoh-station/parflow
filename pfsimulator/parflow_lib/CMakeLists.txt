@@ -48,6 +48,7 @@ set (SRC_FILES_CONST advect.F
   morphism.c
   morphism_cartesian.c
   morphism_terrain_following.c
+  morphism_variable_dz.c
   n_vector.c
   new_endpts.c
   nodiag_scale.c
