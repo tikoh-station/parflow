@@ -171,48 +171,71 @@ double RichardsDivergenceRgt(StencilIndx *S, Morphism *my_morphism, double *pp, 
 
   v3basis basis_con_rgt = MorphismDelInverse(my_morphism, zeta_rgt);
 
-  m3 K_dot_basis_con_rgt;
-  double K_rgt_det = permxp[S->rgt] * permyp[S->rgt] * permzp[S->rgt];
-  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
-  if(K_rgt_det < 1e-16) // if rgt matrix is not invertible
-  {
-    m3 K_rgt = m3_diagonal(permxp[S->rgt], 
-                           permyp[S->rgt], 
-                           permzp[S->rgt]);
+  // m3 K_dot_basis_con_rgt;
+  // double K_rgt_det = permxp[S->rgt] * permyp[S->rgt] * permzp[S->rgt];
+  // double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  // if(K_rgt_det < 1e-16) // if rgt matrix is not invertible
+  // {
+  //   m3 K_rgt = m3_diagonal(permxp[S->rgt], 
+  //                          permyp[S->rgt], 
+  //                          permzp[S->rgt]);
 
-    K_dot_basis_con_rgt = m3v3basis_right_dot(K_rgt, basis_con_rgt);
-  }
-  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
-  {
-    m3 K_mid = m3_diagonal(permxp[S->mid], 
-                           permyp[S->mid], 
-                           permzp[S->mid]);
+  //   K_dot_basis_con_rgt = m3v3basis_right_dot(K_rgt, basis_con_rgt);
+  // }
+  // else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  // {
+  //   m3 K_mid = m3_diagonal(permxp[S->mid], 
+  //                          permyp[S->mid], 
+  //                          permzp[S->mid]);
 
-    K_dot_basis_con_rgt = m3v3basis_right_dot(K_mid, basis_con_rgt);
-  }
-  else
-  {
-    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                            1.0 / permyp[S->mid],
-                            1.0 / permzp[S->mid]);
-    m3 iK_rgt = m3_diagonal(1.0 / permxp[S->rgt],
-                            1.0 / permyp[S->rgt],
-                            1.0 / permzp[S->rgt]);
+  //   K_dot_basis_con_rgt = m3v3basis_right_dot(K_mid, basis_con_rgt);
+  // }
+  // else
+  // {
+  //   m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+  //                           1.0 / permyp[S->mid],
+  //                           1.0 / permzp[S->mid]);
+  //   m3 iK_rgt = m3_diagonal(1.0 / permxp[S->rgt],
+  //                           1.0 / permyp[S->rgt],
+  //                           1.0 / permzp[S->rgt]);
 
-    v3basis basis_cov_rgt_onequarter = 
-        MorphismDel(my_morphism, v3_init(u+0.25*du, v, w));
-    v3basis basis_cov_rgt_threequarter = 
-        MorphismDel(my_morphism, v3_init(u+0.75*du, v, w));
+  //   v3basis basis_cov_rgt_onequarter = 
+  //       MorphismDel(my_morphism, v3_init(u+0.25*du, v, w));
+  //   v3basis basis_cov_rgt_threequarter = 
+  //       MorphismDel(my_morphism, v3_init(u+0.75*du, v, w));
 
-    K_dot_basis_con_rgt = m3_factor(2, m3_inverse(m3_add(
-      m3v3basis_left_dot(basis_cov_rgt_onequarter, iK_mid),
-      m3v3basis_left_dot(basis_cov_rgt_threequarter, iK_rgt)
-    )));
-  }
+  //   K_dot_basis_con_rgt = m3_factor(2, m3_inverse(m3_add(
+  //     m3v3basis_left_dot(basis_cov_rgt_onequarter, iK_mid),
+  //     m3v3basis_left_dot(basis_cov_rgt_threequarter, iK_rgt)
+  //   )));
+  // }
 
-  v3 K_con_rgt = m3v3_left_dot(basis_con_rgt.u, K_dot_basis_con_rgt);
+  // v3 K_con_rgt = m3v3_left_dot(basis_con_rgt.u, K_dot_basis_con_rgt);
 
-  double q_con_rgt = -1 * v3_dot(K_con_rgt, grad_h_cov_rgt);
+  // double q_con_rgt = -1 * v3_dot(K_con_rgt, grad_h_cov_rgt);
+
+  v3basis basis_cov_rgt_onequarter = 
+      MorphismDel(my_morphism, v3_init(u+0.25*du, v, w));
+  v3basis basis_cov_rgt_threequarter = 
+      MorphismDel(my_morphism, v3_init(u+0.75*du, v, w));
+  double jac_rgt_onequarter = 
+      MorphismJacobian(my_morphism, v3_init(u+0.25*du, v, w));
+  double jac_rgt_threequarter = 
+      MorphismJacobian(my_morphism, v3_init(u+0.75*du, v, w));
+
+  double g_cov_rgt_onequarter = 
+      v3_dot(basis_cov_rgt_onequarter.u, basis_cov_rgt_onequarter.u);
+  double g_cov_rgt_threequarter = 
+      v3_dot(basis_cov_rgt_threequarter.u, basis_cov_rgt_threequarter.u);
+
+  double K = EquivalentHydraulicConductivity(
+    permxp[S->mid], permxp[S->rgt],
+    jac_rgt_onequarter, jac_rgt_threequarter,
+    g_cov_rgt_onequarter, g_cov_rgt_threequarter);
+  double g_con_rgt = v3_dot(basis_con_rgt.u, basis_cov_rgt.u);
+  double K_con_rgt = K * g_con_rgt;
+
+  double q_con_rgt = -K_con_rgt * grad_h_cov_rgt.u;
 
   v3 zeta_mid = S->pos;
   double jac_mid = MorphismJacobian(my_morphism, zeta_mid);
@@ -254,48 +277,71 @@ double RichardsDivergenceTop(StencilIndx *S, Morphism *my_morphism, double *pp, 
 
   v3basis basis_con_top = MorphismDelInverse(my_morphism, zeta_top);
 
-  m3 K_dot_basis_con_top;
-  double K_top_det = permxp[S->top] * permyp[S->top] * permzp[S->top];
-  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
-  if(K_top_det < 1e-16) // if top matrix is not invertible
-  {
-    m3 K_top = m3_diagonal(permxp[S->top], 
-                           permyp[S->top], 
-                           permzp[S->top]);
+  // m3 K_dot_basis_con_top;
+  // double K_top_det = permxp[S->top] * permyp[S->top] * permzp[S->top];
+  // double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  // if(K_top_det < 1e-16) // if top matrix is not invertible
+  // {
+  //   m3 K_top = m3_diagonal(permxp[S->top], 
+  //                          permyp[S->top], 
+  //                          permzp[S->top]);
 
-    K_dot_basis_con_top = m3v3basis_right_dot(K_top, basis_con_top);
-  }
-  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
-  {
-    m3 K_mid = m3_diagonal(permxp[S->mid], 
-                           permyp[S->mid], 
-                           permzp[S->mid]);
+  //   K_dot_basis_con_top = m3v3basis_right_dot(K_top, basis_con_top);
+  // }
+  // else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  // {
+  //   m3 K_mid = m3_diagonal(permxp[S->mid], 
+  //                          permyp[S->mid], 
+  //                          permzp[S->mid]);
 
-    K_dot_basis_con_top = m3v3basis_right_dot(K_mid, basis_con_top);
-  }
-  else
-  {
-    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                            1.0 / permyp[S->mid],
-                            1.0 / permzp[S->mid]);
-    m3 iK_top = m3_diagonal(1.0 / permxp[S->top],
-                            1.0 / permyp[S->top],
-                            1.0 / permzp[S->top]);
+  //   K_dot_basis_con_top = m3v3basis_right_dot(K_mid, basis_con_top);
+  // }
+  // else
+  // {
+  //   m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+  //                           1.0 / permyp[S->mid],
+  //                           1.0 / permzp[S->mid]);
+  //   m3 iK_top = m3_diagonal(1.0 / permxp[S->top],
+  //                           1.0 / permyp[S->top],
+  //                           1.0 / permzp[S->top]);
 
-    v3basis basis_cov_top_onequarter = 
-        MorphismDel(my_morphism, v3_init(u, v+0.25*dv, w));
-    v3basis basis_cov_top_threequarter = 
-        MorphismDel(my_morphism, v3_init(u, v+0.75*dv, w));
+  //   v3basis basis_cov_top_onequarter = 
+  //       MorphismDel(my_morphism, v3_init(u, v+0.25*dv, w));
+  //   v3basis basis_cov_top_threequarter = 
+  //       MorphismDel(my_morphism, v3_init(u, v+0.75*dv, w));
 
-    K_dot_basis_con_top = m3_factor(2, m3_inverse(m3_add(
-      m3v3basis_left_dot(basis_cov_top_onequarter, iK_mid),
-      m3v3basis_left_dot(basis_cov_top_threequarter, iK_top)
-    )));
-  }
+  //   K_dot_basis_con_top = m3_factor(2, m3_inverse(m3_add(
+  //     m3v3basis_left_dot(basis_cov_top_onequarter, iK_mid),
+  //     m3v3basis_left_dot(basis_cov_top_threequarter, iK_top)
+  //   )));
+  // }
 
-  v3 K_con_top = m3v3_left_dot(basis_con_top.v, K_dot_basis_con_top);
+  // v3 K_con_top = m3v3_left_dot(basis_con_top.v, K_dot_basis_con_top);
 
-  double q_con_top = -1 * v3_dot(K_con_top, grad_h_cov_top);
+  // double q_con_top = -1 * v3_dot(K_con_top, grad_h_cov_top);
+
+  v3basis basis_cov_top_onequarter = 
+      MorphismDel(my_morphism, v3_init(u, v+0.25*dv, w));
+  v3basis basis_cov_top_threequarter = 
+      MorphismDel(my_morphism, v3_init(u, v+0.75*dv, w));
+  double jac_top_onequarter = 
+      MorphismJacobian(my_morphism, v3_init(u, v+0.25*dv, w));
+  double jac_top_threequarter = 
+      MorphismJacobian(my_morphism, v3_init(u, v+0.75*dv, w));
+
+  double g_cov_top_onequarter = 
+      v3_dot(basis_cov_top_onequarter.v, basis_cov_top_onequarter.v);
+  double g_cov_top_threequarter = 
+      v3_dot(basis_cov_top_threequarter.v, basis_cov_top_threequarter.v);
+
+  double K = EquivalentHydraulicConductivity(
+    permyp[S->mid], permyp[S->top],
+    jac_top_onequarter, jac_top_threequarter,
+    g_cov_top_onequarter, g_cov_top_threequarter);
+  double g_con_top = v3_dot(basis_con_top.v, basis_cov_top.v);
+  double K_con_top = K * g_con_top;
+
+  double q_con_top = -K_con_top * grad_h_cov_top.v;
 
   v3 zeta_mid = S->pos;
   double jac_mid = MorphismJacobian(my_morphism, zeta_mid);
@@ -337,48 +383,71 @@ double RichardsDivergenceFrt(StencilIndx *S, Morphism *my_morphism, double *pp, 
 
   v3basis basis_con_frt = MorphismDelInverse(my_morphism, zeta_frt);
 
-  m3 K_dot_basis_con_frt;
-  double K_frt_det = permxp[S->frt] * permyp[S->frt] * permzp[S->frt];
-  double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
-  if(K_frt_det < 1e-16) // if frt matrix is not invertible
-  {
-    m3 K_frt = m3_diagonal(permxp[S->frt], 
-                           permyp[S->frt], 
-                           permzp[S->frt]);
+  // m3 K_dot_basis_con_frt;
+  // double K_frt_det = permxp[S->frt] * permyp[S->frt] * permzp[S->frt];
+  // double K_mid_det = permxp[S->mid] * permyp[S->mid] * permzp[S->mid];
+  // if(K_frt_det < 1e-16) // if frt matrix is not invertible
+  // {
+  //   m3 K_frt = m3_diagonal(permxp[S->frt], 
+  //                          permyp[S->frt], 
+  //                          permzp[S->frt]);
 
-    K_dot_basis_con_frt = m3v3basis_right_dot(K_frt, basis_con_frt);
-  }
-  else if(K_mid_det < 1e-16) // if mid matrix is not invertible
-  {
-    m3 K_mid = m3_diagonal(permxp[S->mid], 
-                           permyp[S->mid], 
-                           permzp[S->mid]);
+  //   K_dot_basis_con_frt = m3v3basis_right_dot(K_frt, basis_con_frt);
+  // }
+  // else if(K_mid_det < 1e-16) // if mid matrix is not invertible
+  // {
+  //   m3 K_mid = m3_diagonal(permxp[S->mid], 
+  //                          permyp[S->mid], 
+  //                          permzp[S->mid]);
 
-    K_dot_basis_con_frt = m3v3basis_right_dot(K_mid, basis_con_frt);
-  }
-  else
-  {
-    m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
-                            1.0 / permyp[S->mid],
-                            1.0 / permzp[S->mid]);
-    m3 iK_frt = m3_diagonal(1.0 / permxp[S->frt],
-                            1.0 / permyp[S->frt],
-                            1.0 / permzp[S->frt]);
+  //   K_dot_basis_con_frt = m3v3basis_right_dot(K_mid, basis_con_frt);
+  // }
+  // else
+  // {
+  //   m3 iK_mid = m3_diagonal(1.0 / permxp[S->mid],
+  //                           1.0 / permyp[S->mid],
+  //                           1.0 / permzp[S->mid]);
+  //   m3 iK_frt = m3_diagonal(1.0 / permxp[S->frt],
+  //                           1.0 / permyp[S->frt],
+  //                           1.0 / permzp[S->frt]);
 
-    v3basis basis_cov_frt_onequarter = 
-        MorphismDel(my_morphism, v3_init(u, v, w+0.25*dw));
-    v3basis basis_cov_frt_threequarter = 
-        MorphismDel(my_morphism, v3_init(u, v, w+0.75*dw));
+  //   v3basis basis_cov_frt_onequarter = 
+  //       MorphismDel(my_morphism, v3_init(u, v, w+0.25*dw));
+  //   v3basis basis_cov_frt_threequarter = 
+  //       MorphismDel(my_morphism, v3_init(u, v, w+0.75*dw));
 
-    K_dot_basis_con_frt = m3_factor(2, m3_inverse(m3_add(
-      m3v3basis_left_dot(basis_cov_frt_onequarter, iK_mid),
-      m3v3basis_left_dot(basis_cov_frt_threequarter, iK_frt)
-    )));
-  }
+  //   K_dot_basis_con_frt = m3_factor(2, m3_inverse(m3_add(
+  //     m3v3basis_left_dot(basis_cov_frt_onequarter, iK_mid),
+  //     m3v3basis_left_dot(basis_cov_frt_threequarter, iK_frt)
+  //   )));
+  // }
 
-  v3 K_con_frt = m3v3_left_dot(basis_con_frt.w, K_dot_basis_con_frt);
+  // v3 K_con_frt = m3v3_left_dot(basis_con_frt.w, K_dot_basis_con_frt);
 
-  double q_con_frt = -1 * v3_dot(K_con_frt, grad_h_cov_frt);
+  // double q_con_frt = -1 * v3_dot(K_con_frt, grad_h_cov_frt);
+
+  v3basis basis_cov_frt_onequarter = 
+      MorphismDel(my_morphism, v3_init(u, v, w+0.25*dw));
+  v3basis basis_cov_frt_threequarter = 
+      MorphismDel(my_morphism, v3_init(u, v, w+0.75*dw));
+  double jac_frt_onequarter = 
+      MorphismJacobian(my_morphism, v3_init(u, v, w+0.25*dw));
+  double jac_frt_threequarter = 
+      MorphismJacobian(my_morphism, v3_init(u, v, w+0.75*dw));
+
+  double g_cov_frt_onequarter = 
+      v3_dot(basis_cov_frt_onequarter.w, basis_cov_frt_onequarter.w);
+  double g_cov_frt_threequarter = 
+      v3_dot(basis_cov_frt_threequarter.w, basis_cov_frt_threequarter.w);
+
+  double K = EquivalentHydraulicConductivity(
+    permzp[S->mid], permzp[S->frt],
+    jac_frt_onequarter, jac_frt_threequarter,
+    g_cov_frt_onequarter, g_cov_frt_threequarter);
+  double g_con_frt = v3_dot(basis_con_frt.w, basis_cov_frt.w);
+  double K_con_frt = K * g_con_frt;
+
+  double q_con_frt = -K_con_frt * grad_h_cov_frt.w;
 
   v3 zeta_mid = S->pos;
   double jac_mid = MorphismJacobian(my_morphism, zeta_mid);
@@ -386,4 +455,20 @@ double RichardsDivergenceFrt(StencilIndx *S, Morphism *my_morphism, double *pp, 
 
   double u_frt = du * dv * jac_frt * q_con_frt / jac_mid;
   return u_frt;
+}
+
+
+
+double EquivalentHydraulicConductivity(double permA, double permB, 
+                                       double JA, double JB,
+                                       double gA, double gB)
+{
+  if(permA < 1e-16) return permA;
+  if(permB < 1e-16) return permB;
+
+  double iKA = 1.0 / permA;
+  double iKB = 1.0 / permB;
+  double wA = JA * gA;
+  double wB = JB * gB;
+  return (wA + wB) / (wA * iKA + wB * iKB);
 }

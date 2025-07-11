@@ -83,4 +83,9 @@ double RichardsDivergenceTop(StencilIndx *S, Morphism *my_morphism, double *pp, 
 // richards divergence term from the front cell
 double RichardsDivergenceFrt(StencilIndx *S, Morphism *my_morphism, double *pp, double *dp, double *rpp, double *permxp, double *permyp, double *permzp, double gravity, double viscosity, double du, double dv, double dw);
 
+
+double EquivalentHydraulicConductivity(double permA, double permB, 
+                                       double JA, double JB,
+                                       double gA, double gB);
+
 #endif // _RICHARDS_DIV_EVAL
