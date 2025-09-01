@@ -40,6 +40,9 @@ typedef void PublicXtra;
 typedef struct {
   Vector *SpecificYield;
   Vector *AquiferDepth;
+  Vector *PermeabilityX;
+  Vector *PermeabilityY;
+  Vector *Elevation;
 } InstanceXtra;
 
 
@@ -180,10 +183,19 @@ void DeepAquiferEvalNLFunc(double *     fp,
 
   Vector    *Sy = instance_xtra->SpecificYield;
   Vector    *Ad = instance_xtra->AquiferDepth;
+  Vector    *Kx = instance_xtra->PermeabilityX;
+  Vector    *Ky = instance_xtra->PermeabilityY;
+  Vector    *El = instance_xtra->Elevation;
   Subvector *Sy_sub = VectorSubvector(Sy, isubgrid);
   double    *Sy_dat = SubvectorData(Sy_sub);
   Subvector *Ad_sub = VectorSubvector(Ad, isubgrid);
   double    *Ad_dat = SubvectorData(Ad_sub);
+  Subvector *Kx_sub = VectorSubvector(Kx, isubgrid);
+  double    *Kx_dat = SubvectorData(Kx_sub);
+  Subvector *Ky_sub = VectorSubvector(Ky, isubgrid);
+  double    *Ky_dat = SubvectorData(Ky_sub);
+  Subvector *El_sub = VectorSubvector(El, isubgrid);
+  double    *El_dat = SubvectorData(El_sub);
 
   int i = 0, j = 0, k = 0, ival = 0;
 
@@ -197,6 +209,11 @@ void DeepAquiferEvalNLFunc(double *     fp,
                               double Ad_rgt = 0.0;
                               double Ad_lwr = 0.0;
                               double Ad_upr = 0.0;
+                              double El_mid = 0.0;
+                              double El_lft = 0.0;
+                              double El_rgt = 0.0;
+                              double El_lwr = 0.0;
+                              double El_upr = 0.0;
 
                               double dx = SubgridDX(subgrid);
                               double dy = SubgridDY(subgrid);
@@ -282,24 +299,29 @@ void DeepAquiferEvalNLFunc(double *     fp,
     Ad_rgt = is_rgt_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_rgt];
     Ad_lwr = is_lwr_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_lwr];
     Ad_upr = is_upr_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_upr];
+    El_mid = El_dat[ibot_mid];
+    El_lft = is_lft_edge ? El_dat[ibot_mid] : El_dat[ibot_lft];
+    El_rgt = is_rgt_edge ? El_dat[ibot_mid] : El_dat[ibot_rgt];
+    El_lwr = is_lwr_edge ? El_dat[ibot_mid] : El_dat[ibot_lwr];
+    El_upr = is_upr_edge ? El_dat[ibot_mid] : El_dat[ibot_upr];
 
     // compute pressure head in adjacent cells
-    old_head_mid = old_pressure[ip_mid] + 0.5 * Ad_mid;
-    new_head_mid = new_pressure[ip_mid] + 0.5 * Ad_mid;
-    new_head_lft = new_pressure[ip_lft] + 0.5 * Ad_lft;
-    new_head_rgt = new_pressure[ip_rgt] + 0.5 * Ad_rgt;
-    new_head_lwr = new_pressure[ip_lwr] + 0.5 * Ad_lwr;
-    new_head_upr = new_pressure[ip_upr] + 0.5 * Ad_upr;
+    old_head_mid = old_pressure[ip_mid] + El_mid + 0.5 * Ad_mid;
+    new_head_mid = new_pressure[ip_mid] + El_mid + 0.5 * Ad_mid;
+    new_head_lft = new_pressure[ip_lft] + El_lft + 0.5 * Ad_lft;
+    new_head_rgt = new_pressure[ip_rgt] + El_rgt + 0.5 * Ad_rgt;
+    new_head_lwr = new_pressure[ip_lwr] + El_lwr + 0.5 * Ad_lwr;
+    new_head_upr = new_pressure[ip_upr] + El_upr + 0.5 * Ad_upr;
 
     // compute transmissivity at the cell faces
     // the aquifer is assumed to be fully saturated: Kr = 1
-    Tx_mid = new_head_mid * Ks_x[ip_mid];
-    Ty_mid = new_head_mid * Ks_y[ip_mid];
+    Tx_mid = new_head_mid * Kx_dat[ip_mid];
+    Ty_mid = new_head_mid * Ky_dat[ip_mid];
 
-    Tx_lft = HarmonicMean(new_head_lft * Ks_x[ip_lft], Tx_mid);
-    Tx_rgt = HarmonicMean(new_head_rgt * Ks_x[ip_rgt], Tx_mid);
-    Ty_lwr = HarmonicMean(new_head_lwr * Ks_y[ip_lwr], Ty_mid);
-    Ty_upr = HarmonicMean(new_head_upr * Ks_y[ip_upr], Ty_mid);
+    Tx_lft = HarmonicMean(new_head_lft * Kx_dat[ip_lft], Tx_mid);
+    Tx_rgt = HarmonicMean(new_head_rgt * Kx_dat[ip_rgt], Tx_mid);
+    Ty_lwr = HarmonicMean(new_head_lwr * Ky_dat[ip_lwr], Ty_mid);
+    Ty_upr = HarmonicMean(new_head_upr * Ky_dat[ip_upr], Ty_mid);
 
     // compute difference in pressure head
     dh_dt = new_head_mid - old_head_mid;
@@ -396,10 +418,19 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
 
   Vector    *Sy = instance_xtra->SpecificYield;
   Vector    *Ad = instance_xtra->AquiferDepth;
+  Vector    *Kx = instance_xtra->PermeabilityX;
+  Vector    *Ky = instance_xtra->PermeabilityY;
+  Vector    *El = instance_xtra->Elevation;
   Subvector *Sy_sub = VectorSubvector(Sy, isubgrid);
   double    *Sy_dat = SubvectorData(Sy_sub);
   Subvector *Ad_sub = VectorSubvector(Ad, isubgrid);
   double    *Ad_dat = SubvectorData(Ad_sub);
+  Subvector *Kx_sub = VectorSubvector(Kx, isubgrid);
+  double    *Kx_dat = SubvectorData(Kx_sub);
+  Subvector *Ky_sub = VectorSubvector(Ky, isubgrid);
+  double    *Ky_dat = SubvectorData(Ky_sub);
+  Subvector *El_sub = VectorSubvector(El, isubgrid);
+  double    *El_dat = SubvectorData(El_sub);
 
   double *cp = SubmatrixStencilData(J_sub, 0);
   double *wp = SubmatrixStencilData(J_sub, 1);
@@ -419,6 +450,11 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
                               double Ad_rgt = 0.0;
                               double Ad_lwr = 0.0;
                               double Ad_upr = 0.0;
+                              double El_mid = 0.0;
+                              double El_lft = 0.0;
+                              double El_rgt = 0.0;
+                              double El_lwr = 0.0;
+                              double El_upr = 0.0;
 
                               double dx = SubgridDX(subgrid);
                               double dy = SubgridDY(subgrid);
@@ -542,69 +578,74 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
     Ad_rgt = is_rgt_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_rgt];
     Ad_lwr = is_lwr_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_lwr];
     Ad_upr = is_upr_edge ? Ad_dat[ibot_mid] : Ad_dat[ibot_upr];
+    El_mid = El_dat[ibot_mid];
+    El_lft = is_lft_edge ? El_dat[ibot_mid] : El_dat[ibot_lft];
+    El_rgt = is_rgt_edge ? El_dat[ibot_mid] : El_dat[ibot_rgt];
+    El_lwr = is_lwr_edge ? El_dat[ibot_mid] : El_dat[ibot_lwr];
+    El_upr = is_upr_edge ? El_dat[ibot_mid] : El_dat[ibot_upr];
 
-    new_head_mid = new_pressure[ip_mid] + 0.5 * Ad_mid;
-    new_head_lft = new_pressure[ip_lft] + 0.5 * Ad_lft;
-    new_head_rgt = new_pressure[ip_rgt] + 0.5 * Ad_rgt;
-    new_head_lwr = new_pressure[ip_lwr] + 0.5 * Ad_lwr;
-    new_head_upr = new_pressure[ip_upr] + 0.5 * Ad_upr;
+    new_head_mid = new_pressure[ip_mid] + El_mid + 0.5 * Ad_mid;
+    new_head_lft = new_pressure[ip_lft] + El_lft + 0.5 * Ad_lft;
+    new_head_rgt = new_pressure[ip_rgt] + El_rgt + 0.5 * Ad_rgt;
+    new_head_lwr = new_pressure[ip_lwr] + El_lwr + 0.5 * Ad_lwr;
+    new_head_upr = new_pressure[ip_upr] + El_upr + 0.5 * Ad_upr;
 
     // compute transmissivity at the cell faces
-    Tx_mid = new_head_mid * Ks_x[ip_mid];
-    Ty_mid = new_head_mid * Ks_y[ip_mid];
+    Tx_mid = new_head_mid * Kx_dat[ip_mid];
+    Ty_mid = new_head_mid * Ky_dat[ip_mid];
 
-    Tx_lft = HarmonicMean(new_head_lft * Ks_x[ip_lft], Tx_mid);
-    Tx_rgt = HarmonicMean(new_head_rgt * Ks_x[ip_rgt], Tx_mid);
-    Ty_lwr = HarmonicMean(new_head_lwr * Ks_y[ip_lwr], Ty_mid);
-    Ty_upr = HarmonicMean(new_head_upr * Ks_y[ip_upr], Ty_mid);
+    Tx_lft = HarmonicMean(new_head_lft * Kx_dat[ip_lft], Tx_mid);
+    Tx_rgt = HarmonicMean(new_head_rgt * Kx_dat[ip_rgt], Tx_mid);
+    Ty_lwr = HarmonicMean(new_head_lwr * Ky_dat[ip_lwr], Ty_mid);
+    Ty_upr = HarmonicMean(new_head_upr * Ky_dat[ip_upr], Ty_mid);
 
 
     // dTx[i,j,k] / dp[i,j,k]
-    del_mid_Tx_mid = Ks_x[ip_mid];
+    del_mid_Tx_mid = Kx_dat[ip_mid];
     // dTy[i,j,k] / dp[i,j,k]
-    del_mid_Ty_mid = Ks_y[ip_mid];
+    del_mid_Ty_mid = Ky_dat[ip_mid];
 
     // dTx[i-1/2,j,k] / dp[i,j,k]
     del_mid_Tx_lft = is_lft_edge ? del_mid_Tx_mid :
-                     DelHarmonicMean(new_head_lft * Ks_x[ip_lft], Tx_mid,
+                     DelHarmonicMean(new_head_lft * Kx_dat[ip_lft], Tx_mid,
                                      0, del_mid_Tx_mid, Tx_lft);
 
     // dTx[i+1/2,j,k] / dp[i,j,k]
     del_mid_Tx_rgt = is_rgt_edge ? del_mid_Tx_mid :
-                     DelHarmonicMean(new_head_rgt * Ks_x[ip_rgt], Tx_mid,
+                     DelHarmonicMean(new_head_rgt * Kx_dat[ip_rgt], Tx_mid,
                                      0, del_mid_Tx_mid, Tx_rgt);
 
     // dTy[i,j-1/2,k] / dp[i,j,k]
     del_mid_Ty_lwr = is_lwr_edge ? del_mid_Ty_mid :
-                     DelHarmonicMean(new_head_lwr * Ks_y[ip_lwr], Ty_mid,
+                     DelHarmonicMean(new_head_lwr * Ky_dat[ip_lwr], Ty_mid,
                                      0, del_mid_Ty_mid, Ty_lwr);
 
     // dTy[i,j+1/2,k] / dp[i,j,k]
     del_mid_Ty_upr = is_upr_edge ? del_mid_Ty_mid :
-                     DelHarmonicMean(new_head_upr * Ks_y[ip_upr], Ty_mid,
+                     DelHarmonicMean(new_head_upr * Ky_dat[ip_upr], Ty_mid,
                                      0, del_mid_Ty_mid, Ty_upr);
 
     // Non-diagonal terms
 
     // dTx[i-1/2,j,k] / dp[i-1,j,k]
     del_lft_Tx_lft = is_lft_edge ? 0.0 :
-                     DelHarmonicMean(new_head_lft * Ks_x[ip_lft], Tx_mid,
-                                     Ks_x[ip_lft], 0.0, Tx_lft);
+                     DelHarmonicMean(new_head_lft * Kx_dat[ip_lft], Tx_mid,
+                                     Kx_dat[ip_lft], 0.0, Tx_lft);
 
     // dTx[i+1/2,j,k] / dp[i+1,j,k]
     del_rgt_Tx_rgt = is_rgt_edge ? 0.0 :
-                     DelHarmonicMean(new_head_rgt * Ks_x[ip_rgt], Tx_mid,
-                                     Ks_x[ip_rgt], 0.0, Tx_rgt);
+                     DelHarmonicMean(new_head_rgt * Kx_dat[ip_rgt], Tx_mid,
+                                     Kx_dat[ip_rgt], 0.0, Tx_rgt);
 
     // dTy[i,j-1/2,k] / dp[i,j-1,k]
     del_lwr_Ty_lwr = is_lwr_edge ? 0.0 :
-                     DelHarmonicMean(new_head_lwr * Ks_y[ip_lwr], Ty_mid,
-                                     Ks_y[ip_lwr], 0.0, Ty_lwr);
+                     DelHarmonicMean(new_head_lwr * Ky_dat[ip_lwr], Ty_mid,
+                                     Ky_dat[ip_lwr], 0.0, Ty_lwr);
 
     // dTy[i,j+1/2,k] / dp[i,j+1,k]
     del_upr_Ty_upr = is_upr_edge ? 0.0 :
-                     DelHarmonicMean(new_head_upr * Ks_y[ip_upr], Ty_mid,
-                                     Ks_y[ip_upr], 0.0, Ty_upr);
+                     DelHarmonicMean(new_head_upr * Ky_dat[ip_upr], Ty_mid,
+                                     Ky_dat[ip_upr], 0.0, Ty_upr);
 
 
     if (is_lft_edge)
@@ -727,10 +768,37 @@ PFModule* DeepAquiferEvalInitInstanceXtra(ProblemData *problem_data)
                     ParameterUnionString(1, "Filename")
                     );
 
-  InitDeepAquiferParameter(ProblemDataSpecificYield(problem_data), Sy);
-  instance_xtra->SpecificYield = ProblemDataSpecificYield(problem_data);
-  InitDeepAquiferParameter(ProblemDataAquiferDepth(problem_data), Ad);
-  instance_xtra->AquiferDepth = ProblemDataAquiferDepth(problem_data);
+  ParameterUnion Kx;
+  GetParameterUnion(Kx, "Patch.BCPressure.DeepAquifer.PermeabilityX.%s",
+                    na_types,
+                    ParameterUnionDouble(0, "Value")
+                    ParameterUnionString(1, "Filename")
+                    );
+
+  ParameterUnion Ky;
+  GetParameterUnion(Ky, "Patch.BCPressure.DeepAquifer.PermeabilityY.%s",
+                    na_types,
+                    ParameterUnionDouble(0, "Value")
+                    ParameterUnionString(1, "Filename")
+                    );
+
+  ParameterUnion El;
+  GetParameterUnion(El, "Patch.BCPressure.DeepAquifer.Elevation.%s",
+                    na_types,
+                    ParameterUnionDouble(0, "Value")
+                    ParameterUnionString(1, "Filename")
+                    );
+
+  InitDeepAquiferParameter(ProblemDataDeepAquiferSpecificYield(problem_data), Sy);
+  instance_xtra->SpecificYield = ProblemDataDeepAquiferSpecificYield(problem_data);
+  InitDeepAquiferParameter(ProblemDataDeepAquiferAquiferDepth(problem_data), Ad);
+  instance_xtra->AquiferDepth = ProblemDataDeepAquiferAquiferDepth(problem_data);
+  InitDeepAquiferParameter(ProblemDataDeepAquiferPermeabilityX(problem_data), Kx);
+  instance_xtra->PermeabilityX = ProblemDataDeepAquiferPermeabilityX(problem_data);
+  InitDeepAquiferParameter(ProblemDataDeepAquiferPermeabilityY(problem_data), Ky);
+  instance_xtra->PermeabilityY = ProblemDataDeepAquiferPermeabilityY(problem_data);
+  InitDeepAquiferParameter(ProblemDataDeepAquiferElevation(problem_data), El);
+  instance_xtra->Elevation = ProblemDataDeepAquiferElevation(problem_data);
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
   return this_module;

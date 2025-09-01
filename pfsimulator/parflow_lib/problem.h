@@ -168,8 +168,11 @@ typedef struct {
   BCPressureData *bc_pressure_data;
 
   /* DeepAquifer BC vectors */
-  Vector *specific_yield;
-  Vector *aquifer_depth;
+  Vector *daq_specific_yield;
+  Vector *daq_aquifer_depth;
+  Vector *daq_permeability_x;
+  Vector *daq_permeability_y;
+  Vector *daq_elevation;
 
   /*sk  overland flow*/
   Vector *x_slope;
@@ -301,8 +304,11 @@ typedef struct {
 #define ProblemDataWellData(problem_data)       ((problem_data)->well_data)
 #define ProblemDataReservoirData(problem_data)       ((problem_data)->reservoir_data)
 #define ProblemDataBCPressureData(problem_data) ((problem_data)->bc_pressure_data)
-#define ProblemDataSpecificYield(problem_data) ((problem_data)->specific_yield)
-#define ProblemDataAquiferDepth(problem_data) ((problem_data)->aquifer_depth)
+#define ProblemDataDeepAquiferSpecificYield(problem_data) ((problem_data)->daq_specific_yield)
+#define ProblemDataDeepAquiferAquiferDepth(problem_data) ((problem_data)->daq_aquifer_depth)
+#define ProblemDataDeepAquiferPermeabilityX(problem_data) ((problem_data)->daq_permeability_x)
+#define ProblemDataDeepAquiferPermeabilityY(problem_data) ((problem_data)->daq_permeability_y)
+#define ProblemDataDeepAquiferElevation(problem_data) ((problem_data)->daq_elevation)
 #define ProblemDataSpecificStorage(problem_data)((problem_data)->specific_storage)   //sk
 #define ProblemDataTSlopeX(problem_data)        ((problem_data)->x_slope)   //sk
 #define ProblemDataTSlopeY(problem_data)        ((problem_data)->y_slope)   //sk

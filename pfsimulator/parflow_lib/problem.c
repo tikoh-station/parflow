@@ -463,9 +463,15 @@ ProblemData   *NewProblemData(
 
   ProblemDataBCPressureData(problem_data) = NewBCPressureData();
 
-  ProblemDataSpecificYield(problem_data) =
+  ProblemDataDeepAquiferSpecificYield(problem_data) =
     NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);
-  ProblemDataAquiferDepth(problem_data) =
+  ProblemDataDeepAquiferAquiferDepth(problem_data) =
+    NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);
+  ProblemDataDeepAquiferPermeabilityX(problem_data) =
+    NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);
+  ProblemDataDeepAquiferPermeabilityY(problem_data) =
+    NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);
+  ProblemDataDeepAquiferElevation(problem_data) =
     NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);
 
   ProblemDataWellData(problem_data) = NewWellData();
@@ -497,8 +503,11 @@ void          FreeProblemData(
 
     FreeWellData(ProblemDataWellData(problem_data));
     FreeReservoirData(ProblemDataReservoirData(problem_data));
-    FreeVector(ProblemDataSpecificYield(problem_data));
-    FreeVector(ProblemDataAquiferDepth(problem_data));
+    FreeVector(ProblemDataDeepAquiferElevation(problem_data));
+    FreeVector(ProblemDataDeepAquiferPermeabilityY(problem_data));
+    FreeVector(ProblemDataDeepAquiferPermeabilityX(problem_data));
+    FreeVector(ProblemDataDeepAquiferAquiferDepth(problem_data));
+    FreeVector(ProblemDataDeepAquiferSpecificYield(problem_data));
     FreeBCPressureData(ProblemDataBCPressureData(problem_data));
     FreeVector(ProblemDataPorosity(problem_data));
     FreeVector(ProblemDataPermeabilityX(problem_data));
