@@ -323,18 +323,26 @@ void DeepAquiferEvalNLFunc(double *     fp,
     Ty_lwr = HarmonicMean(new_head_lwr * Ky_dat[ip_lwr], Ty_mid);
     Ty_upr = HarmonicMean(new_head_upr * Ky_dat[ip_upr], Ty_mid);
 
+    // Tx_mid = Ad_mid * Kx_dat[ip_mid];
+    // Ty_mid = Ad_mid * Ky_dat[ip_mid];
+
+    // Tx_lft = HarmonicMean(Ad_lft * Kx_dat[ip_lft], Tx_mid);
+    // Tx_rgt = HarmonicMean(Ad_rgt * Kx_dat[ip_rgt], Tx_mid);
+    // Ty_lwr = HarmonicMean(Ad_lwr * Ky_dat[ip_lwr], Ty_mid);
+    // Ty_upr = HarmonicMean(Ad_upr * Ky_dat[ip_upr], Ty_mid);
+
     // compute difference in pressure head
     dh_dt = new_head_mid - old_head_mid;
 
     if (is_lft_edge)
     {
       dh_rgt = new_head_rgt - new_head_mid;
-      dh_lft = dh_rgt;
+      dh_lft = 0.0;
     }
     else if (is_rgt_edge)
     {
       dh_lft = new_head_mid - new_head_lft;
-      dh_rgt = dh_lft;
+      dh_rgt = 0.0;
     }
     else
     {
@@ -345,12 +353,12 @@ void DeepAquiferEvalNLFunc(double *     fp,
     if (is_lwr_edge)
     {
       dh_upr = new_head_upr - new_head_mid;
-      dh_lwr = dh_upr;
+      dh_lwr = 0.0;
     }
     else if (is_upr_edge)
     {
       dh_lwr = new_head_mid - new_head_lwr;
-      dh_upr = dh_lwr;
+      dh_upr = 0.0;
     }
     else
     {
@@ -664,12 +672,12 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
       dh_lft = new_head_mid - new_head_lft;
     }
 
-    del_mid_dh_lft = is_lft_edge ? -1.0 :  1.0;
-    del_lft_dh_lft = is_lft_edge ?  0.0 : -1.0;
-    del_rgt_dh_lft = is_lft_edge ?  1.0 :  0.0;
-    del_mid_dh_rgt = is_rgt_edge ?  1.0 : -1.0;
-    del_lft_dh_rgt = is_rgt_edge ? -1.0 :  0.0;
-    del_rgt_dh_rgt = is_rgt_edge ?  0.0 :  1.0;
+    del_mid_dh_lft = is_lft_edge ? 0.0 :  1.0;
+    del_lft_dh_lft = is_lft_edge ? 0.0 : -1.0;
+    del_rgt_dh_lft = is_lft_edge ? 0.0 :  0.0;
+    del_mid_dh_rgt = is_rgt_edge ? 0.0 : -1.0;
+    del_lft_dh_rgt = is_rgt_edge ? 0.0 :  0.0;
+    del_rgt_dh_rgt = is_rgt_edge ? 0.0 :  1.0;
 
     if (is_lwr_edge)
     {
@@ -687,12 +695,12 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
       dh_upr = new_head_upr - new_head_mid;
     }
 
-    del_mid_dh_lwr = is_lwr_edge ? -1.0 :  1.0;
-    del_lwr_dh_lwr = is_lwr_edge ?  0.0 : -1.0;
-    del_upr_dh_lwr = is_lwr_edge ?  1.0 :  0.0;
-    del_mid_dh_upr = is_upr_edge ?  1.0 : -1.0;
-    del_lwr_dh_upr = is_upr_edge ? -1.0 :  0.0;
-    del_upr_dh_upr = is_upr_edge ?  0.0 :  1.0;
+    del_mid_dh_lwr = is_lwr_edge ? 0.0 :  1.0;
+    del_lwr_dh_lwr = is_lwr_edge ? 0.0 : -1.0;
+    del_upr_dh_lwr = is_lwr_edge ? 0.0 :  0.0;
+    del_mid_dh_upr = is_upr_edge ? 0.0 : -1.0;
+    del_lwr_dh_upr = is_upr_edge ? 0.0 :  0.0;
+    del_upr_dh_upr = is_upr_edge ? 0.0 :  1.0;
 
     // dq_storage[i,j,k] / dp[i,j,k]
     del_mid_q_storage = dxdy * Sy;
