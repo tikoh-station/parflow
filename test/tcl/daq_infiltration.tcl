@@ -126,6 +126,12 @@ pfset Patch.BCPressure.DeepAquifer.SpecificYield.Type   Constant
 pfset Patch.BCPressure.DeepAquifer.SpecificYield.Value  0.1
 pfset Patch.BCPressure.DeepAquifer.AquiferDepth.Type    Constant
 pfset Patch.BCPressure.DeepAquifer.AquiferDepth.Value   90.0
+pfset Patch.BCPressure.DeepAquifer.PermeabilityX.Type   Constant
+pfset Patch.BCPressure.DeepAquifer.PermeabilityX.Value  0.01836
+pfset Patch.BCPressure.DeepAquifer.PermeabilityY.Type   Constant
+pfset Patch.BCPressure.DeepAquifer.PermeabilityY.Value  0.01836
+pfset Patch.BCPressure.DeepAquifer.Elevation.Type       Constant
+pfset Patch.BCPressure.DeepAquifer.Elevation.Value      0.0
 
 pfset Patch.top.BCPressure.Type              FluxConst
 pfset Patch.top.BCPressure.Cycle             rainfall
@@ -153,8 +159,6 @@ pfset Geom.Porosity.GeomNames       "domain"
 pfset Geom.domain.Porosity.Type     Constant
 # Value for Silt soil
 pfset Geom.domain.Porosity.Value    0.489
-# Value for Clay soil
-# pfset Geom.domain.Porosity.Value    0.459
 
 #-----------------------------------------------------------------------------
 # Perm
@@ -163,8 +167,6 @@ pfset Geom.Perm.Names               "domain background"
 pfset Geom.domain.Perm.Type         Constant
 # Value for Silt soil in m/hour
 pfset Geom.domain.Perm.Value        0.01836
-# Value for Clay soil in m/hour
-# pfset Geom.domain.Perm.Value        0.000612
 
 pfset Perm.TensorType               TensorByGeom
 
