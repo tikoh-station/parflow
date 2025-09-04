@@ -520,3 +520,96 @@ Patch:
             AnyString:
             ValidFile:
 
+      PermeabilityX:
+        __doc__: >
+          In this section, the aquifer variable "PermeabilityX" is set.
+
+        Type:
+          help: >
+            [Type: string] This key specifies the type of the DeepAquifer 
+            parameter: "Constant" will set the parameter to a constant value,
+            while "FileName" will set the parameter to values read from a 
+            file. 
+          domains:
+            EnumDomain:
+              enum_list:
+                - Constant
+                - FileName
+          
+        Value:
+          help: >
+            [Type: double] This key will set the DeepAquifer parameter to 
+            the inserted constant value.
+          domains:
+            DoubleValue:
+        
+        FileName:
+          help: >
+            [Type: string] This key will set the DeepAquifer parameter to 
+            the values read from the inserted file.
+          domains:
+            AnyString:
+            ValidFile:
+
+      PermeabilityY:
+        __doc__: >
+          In this section, the aquifer variable "PermeabilityY" is set.
+
+        Type:
+          help: >
+            [Type: string] This key specifies the type of the DeepAquifer 
+            parameter: "Constant" will set the parameter to a constant value,
+            while "FileName" will set the parameter to values read from a 
+            file. 
+          domains:
+            EnumDomain:
+              enum_list:
+                - Constant
+                - FileName
+          
+        Value:
+          help: >
+            [Type: double] This key will set the DeepAquifer parameter to 
+            the inserted constant value.
+          domains:
+            DoubleValue:
+        
+        FileName:
+          help: >
+            [Type: string] This key will set the DeepAquifer parameter to 
+            the values read from the inserted file.
+          domains:
+            AnyString:
+            ValidFile:
+
+      Elevations:
+        __doc__: >
+          In this section, the aquifer variable "Elevations" is set.
+
+        Type:
+          help: >
+            [Type: string] This key specifies the type of the DeepAquifer 
+            parameter: "Constant" will set the parameter to a constant value,
+            while "FileName" will set the parameter to values read from a 
+            file. 
+          domains:
+            EnumDomain:
+              enum_list:
+                - Constant
+                - FileName
+          
+        Value:
+          help: >
+            [Type: double] This key will set the DeepAquifer parameter to 
+            the inserted constant value.
+          domains:
+            DoubleValue:
+        
+        FileName:
+          help: >
+            [Type: string] This key will set the DeepAquifer parameter to 
+            the values read from the inserted file.
+          domains:
+            AnyString:
+            ValidFile:
+

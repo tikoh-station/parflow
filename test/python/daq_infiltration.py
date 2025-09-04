@@ -146,8 +146,8 @@ daq.Patch.BCPressure.DeepAquifer.PermeabilityX.Type = "Constant"
 daq.Patch.BCPressure.DeepAquifer.PermeabilityX.Value = 0.01836
 daq.Patch.BCPressure.DeepAquifer.PermeabilityY.Type = "Constant"
 daq.Patch.BCPressure.DeepAquifer.PermeabilityY.Value = 0.01836
-daq.Patch.BCPressure.DeepAquifer.Elevation.Type = "Constant"
-daq.Patch.BCPressure.DeepAquifer.Elevation.Value = 0.0
+daq.Patch.BCPressure.DeepAquifer.Elevations.Type = "Constant"
+daq.Patch.BCPressure.DeepAquifer.Elevations.Value = 0.0
 
 daq.Patch.top.BCPressure.Type = "FluxConst"
 daq.Patch.top.BCPressure.Cycle = "rainfall"

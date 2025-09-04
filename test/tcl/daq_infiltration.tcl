@@ -130,8 +130,8 @@ pfset Patch.BCPressure.DeepAquifer.PermeabilityX.Type   Constant
 pfset Patch.BCPressure.DeepAquifer.PermeabilityX.Value  0.01836
 pfset Patch.BCPressure.DeepAquifer.PermeabilityY.Type   Constant
 pfset Patch.BCPressure.DeepAquifer.PermeabilityY.Value  0.01836
-pfset Patch.BCPressure.DeepAquifer.Elevation.Type       Constant
-pfset Patch.BCPressure.DeepAquifer.Elevation.Value      0.0
+pfset Patch.BCPressure.DeepAquifer.Elevations.Type       Constant
+pfset Patch.BCPressure.DeepAquifer.Elevations.Value      0.0
 
 pfset Patch.top.BCPressure.Type              FluxConst
 pfset Patch.top.BCPressure.Cycle             rainfall

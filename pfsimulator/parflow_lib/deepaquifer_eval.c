@@ -42,7 +42,7 @@ typedef struct {
   Vector *AquiferDepth;
   Vector *PermeabilityX;
   Vector *PermeabilityY;
-  Vector *Elevation;
+  Vector *Elevations;
 } InstanceXtra;
 
 
@@ -185,7 +185,7 @@ void DeepAquiferEvalNLFunc(double *     fp,
   Vector    *Ad = instance_xtra->AquiferDepth;
   Vector    *Kx = instance_xtra->PermeabilityX;
   Vector    *Ky = instance_xtra->PermeabilityY;
-  Vector    *El = instance_xtra->Elevation;
+  Vector    *El = instance_xtra->Elevations;
   Subvector *Sy_sub = VectorSubvector(Sy, isubgrid);
   double    *Sy_dat = SubvectorData(Sy_sub);
   Subvector *Ad_sub = VectorSubvector(Ad, isubgrid);
@@ -428,7 +428,7 @@ void DeepAquiferEvalJacob(Submatrix *  J_sub,
   Vector    *Ad = instance_xtra->AquiferDepth;
   Vector    *Kx = instance_xtra->PermeabilityX;
   Vector    *Ky = instance_xtra->PermeabilityY;
-  Vector    *El = instance_xtra->Elevation;
+  Vector    *El = instance_xtra->Elevations;
   Subvector *Sy_sub = VectorSubvector(Sy, isubgrid);
   double    *Sy_dat = SubvectorData(Sy_sub);
   Subvector *Ad_sub = VectorSubvector(Ad, isubgrid);
@@ -791,7 +791,7 @@ PFModule* DeepAquiferEvalInitInstanceXtra(ProblemData *problem_data)
                     );
 
   ParameterUnion El;
-  GetParameterUnion(El, "Patch.BCPressure.DeepAquifer.Elevation.%s",
+  GetParameterUnion(El, "Patch.BCPressure.DeepAquifer.Elevations.%s",
                     na_types,
                     ParameterUnionDouble(0, "Value")
                     ParameterUnionString(1, "Filename")
@@ -806,7 +806,7 @@ PFModule* DeepAquiferEvalInitInstanceXtra(ProblemData *problem_data)
   InitDeepAquiferParameter(ProblemDataDeepAquiferPermeabilityY(problem_data), Ky);
   instance_xtra->PermeabilityY = ProblemDataDeepAquiferPermeabilityY(problem_data);
   InitDeepAquiferParameter(ProblemDataDeepAquiferElevation(problem_data), El);
-  instance_xtra->Elevation = ProblemDataDeepAquiferElevation(problem_data);
+  instance_xtra->Elevations = ProblemDataDeepAquiferElevation(problem_data);
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
   return this_module;
