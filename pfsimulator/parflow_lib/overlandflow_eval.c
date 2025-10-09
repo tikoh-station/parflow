@@ -111,7 +111,7 @@ void    OverlandFlowEval(
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, sg),
                            Locals(int io, itop, ip, k1, ii, step;
-                                  double q_v[3], xdir, ydir; ),
+                                  double q_v[3], Sx, Sy, sqrt_Smag; ),
                            CellSetup(DoNothing),
                            FACE(LeftFace, DoNothing), FACE(RightFace, DoNothing),
                            FACE(DownFace, DoNothing), FACE(UpFace, DoNothing),
@@ -126,8 +126,6 @@ void    OverlandFlowEval(
         q_v[0] = 0.0;
         q_v[1] = 0.0;
         q_v[2] = 0.0;
-        xdir = 0.0;
-        ydir = 0.0;
         k1 = 0;
 
         for (ii = -1; ii < 2; ii++)
@@ -137,14 +135,13 @@ void    OverlandFlowEval(
           {
             ip = SubvectorEltIndex(p_sub, (i + ii), j, k1);
 
-            if (sx_dat[io + ii] > 0.0)
-              xdir = -1.0;
-            else if (sx_dat[io + ii] < 0.0)
-              xdir = 1.0;
-            else
-              xdir = 0.0;
+            // square root of slope magnitude \sqrt{\sqrt{{S_x}^2 + {S_y}^2}}
+            Sx = sx_dat[io + ii];
+            Sy = sy_dat[io + ii];
+            sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+            sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-            q_v[ii + 1] = xdir * (RPowerR(fabs(sx_dat[io + ii]), 0.5) / mann_dat[io + ii])
+            q_v[ii + 1] = Sx / (mann_dat[io + ii] * sqrt_Smag)
                           * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
           }
         }
@@ -167,14 +164,13 @@ void    OverlandFlowEval(
           {
             ip = SubvectorEltIndex(p_sub, i, (j + ii), k1);
 
-            if (sy_dat[io + step] > 0.0)
-              ydir = -1.0;
-            else if (sy_dat[io + step] < 0.0)
-              ydir = 1.0;
-            else
-              ydir = 0.0;
+            // square root of slope magnitude \sqrt{\sqrt{{S_x}^2 + {S_y}^2}}
+            Sx = sx_dat[io + step];
+            Sy = sy_dat[io + step];
+            sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+            sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-            q_v[ii + 1] = ydir * (RPowerR(fabs(sy_dat[io + step]), 0.5) / mann_dat[io + step])
+            q_v[ii + 1] = Sy / (sqrt_Smag * mann_dat[io + step])
                           * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
           }
         }
@@ -193,7 +189,7 @@ void    OverlandFlowEval(
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, sg),
                            Locals(int io, itop, ip, k1, step, ii;
-                                  double q_v[3], xdir, ydir; ),
+                                  double q_v[3], Sx, Sy, sqrt_Smag; ),
                            CellSetup(DoNothing),
                            FACE(LeftFace, DoNothing), FACE(RightFace, DoNothing),
                            FACE(DownFace, DoNothing), FACE(UpFace, DoNothing),
@@ -216,14 +212,13 @@ void    OverlandFlowEval(
           {
             ip = SubvectorEltIndex(p_sub, (i + ii), j, k1);
 
-            if (sx_dat[io + ii] > 0.0)
-              xdir = -1.0;
-            else if (sx_dat[io + ii] < 0.0)
-              xdir = 1.0;
-            else
-              xdir = 0.0;
+            // square root of slope magnitude \sqrt{\sqrt{{S_x}^2 + {S_y}^2}}
+            Sx = sx_dat[io + ii];
+            Sy = sy_dat[io + ii];
+            sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+            sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-            q_v[ii + 1] = xdir * (RPowerR(fabs(sx_dat[io + ii]), 0.5) / mann_dat[io + ii]) * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
+            q_v[ii + 1] = Sx / (sqrt_Smag * mann_dat[io + ii]) * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
           }
         }
         qx_v[io] = q_v[1];
@@ -245,14 +240,13 @@ void    OverlandFlowEval(
           {
             ip = SubvectorEltIndex(p_sub, i, (j + ii), k1);
 
-            if (sy_dat[io + step] > 0.0)
-              ydir = -1.0;
-            else if (sy_dat[io + step] < 0.0)
-              ydir = 1.0;
-            else
-              ydir = 0.0;
+            // square root of slope magnitude \sqrt{\sqrt{{S_x}^2 + {S_y}^2}}
+            Sx = sx_dat[io + step];
+            Sy = sy_dat[io + step];
+            sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+            sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-            q_v[ii + 1] = ydir * (RPowerR(fabs(sy_dat[io + step]), 0.5) / mann_dat[io + step]) * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
+            q_v[ii + 1] = Sy / (sqrt_Smag * mann_dat[io + step]) * RPowerR(pfmax((pp[ip]), 0.0), (5.0 / 3.0));
           }
         }
         qy_v[io] = q_v[1];
@@ -273,41 +267,31 @@ void    OverlandFlowEval(
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, sg),
                            Locals(int io, ip;
-                                  double xdir, ydir, q_mid; ),
+                                  double q_mid, Sx, Sy, sqrt_Smag; ),
                            CellSetup(DoNothing),
                            FACE(LeftFace, DoNothing), FACE(RightFace, DoNothing),
                            FACE(DownFace, DoNothing), FACE(UpFace, DoNothing),
                            FACE(BackFace, DoNothing),
                            FACE(FrontFace,
       {
-        /* compute derivs for east and west faces */
-
         /* current cell */
         io = SubvectorEltIndex(sx_sub, i, j, 0);
         ip = SubvectorEltIndex(p_sub, i, j, k);
 
-        if (sx_dat[io] > 0.0)
-          xdir = -1.0;
-        else if (sx_dat[io] < 0.0)
-          xdir = 1.0;
-        else
-          xdir = 0.0;
+        Sx = sx_dat[io];
+        Sy = sy_dat[io];
+        sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+        sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-        q_mid = xdir * (5.0 / 3.0) * (RPowerR(fabs(sx_dat[io]), 0.5) / mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
+        /* compute east and west faces */
+        q_mid = (5.0 / 3.0) * Sx / (sqrt_Smag * mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
         /* compute derivs of kw and ke - NOTE: io is for current cell */
         kw_v[io] = -pfmax(-q_mid, 0.0);
         ke_v[io] = pfmax(q_mid, 0.0);
 
 
         /* compute north and south faces */
-        if (sy_dat[io] > 0.0)
-          ydir = -1.0;
-        else if (sy_dat[io] < 0.0)
-          ydir = 1.0;
-        else
-          ydir = 0.0;
-
-        q_mid = ydir * (5.0 / 3.0) * (RPowerR(fabs(sy_dat[io]), 0.5) / mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
+        q_mid = (5.0 / 3.0) * Sy / (sqrt_Smag * mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
         /* compute derivs of ks and kn - NOTE: io is for current cell */
         ks_v[io] = -pfmax(-q_mid, 0.0);
         kn_v[io] = pfmax(q_mid, 0.0);
@@ -322,27 +306,24 @@ void    OverlandFlowEval(
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, sg),
                            Locals(int io, ip;
-                                  double xdir, ydir, q_mid; ),
+                                  double q_mid, Sx, Sy, sqrt_Smag; ),
                            CellSetup(DoNothing),
                            FACE(LeftFace, DoNothing), FACE(RightFace, DoNothing),
                            FACE(DownFace, DoNothing), FACE(UpFace, DoNothing),
                            FACE(BackFace, DoNothing),
                            FACE(FrontFace,
       {
-        /* compute derivs for east and west faces */
-
         /* current cell */
         io = SubvectorEltIndex(sx_sub, i, j, 0);
         ip = SubvectorEltIndex(p_sub, i, j, k);
 
-        if (sx_dat[io] > 0.0)
-          xdir = -1.0;
-        else if (sx_dat[io] < 0.0)
-          xdir = 1.0;
-        else
-          xdir = 0.0;
+        Sx = sx_dat[io];
+        Sy = sy_dat[io];
+        sqrt_Smag = RPowerR(Sx * Sx + Sy * Sy, 0.25);
+        sqrt_Smag = sqrt_Smag > 1e-12 ? sqrt_Smag : 1.0;
 
-        q_mid = xdir * (5.0 / 3.0) * (RPowerR(fabs(sx_dat[io]), 0.5) / mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
+        /* compute east and west faces */
+        q_mid = (5.0 / 3.0) * Sx / (sqrt_Smag * mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
         qx_v[io] = q_mid;
         /* compute derivs of kw and ke - NOTE: io is for current cell */
         kw_v[io] = -pfmax(-q_mid, 0.0);
@@ -350,14 +331,7 @@ void    OverlandFlowEval(
 
 
         /* compute north and south faces */
-        if (sy_dat[io] > 0.0)
-          ydir = -1.0;
-        else if (sy_dat[io] < 0.0)
-          ydir = 1.0;
-        else
-          ydir = 0.0;
-
-        q_mid = ydir * (5.0 / 3.0) * (RPowerR(fabs(sy_dat[io]), 0.5) / mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
+        q_mid = (5.0 / 3.0) * Sy / (sqrt_Smag * mann_dat[io]) * RPowerR(pfmax((pp[ip]), 0.0), (2.0 / 3.0));
         qy_v[io] = q_mid;
         /* compute derivs of ks and kn - NOTE: io is for current cell */
         ks_v[io] = -pfmax(-q_mid, 0.0);
