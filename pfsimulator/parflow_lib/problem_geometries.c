@@ -1,35 +1,36 @@
-/*BHEADER**********************************************************************
-*
-*  Copyright (c) 1995-2024, Lawrence Livermore National Security,
-*  LLC. Produced at the Lawrence Livermore National Laboratory. Written
-*  by the Parflow Team (see the CONTRIBUTORS file)
-*  <parflow@lists.llnl.gov> CODE-OCEC-08-103. All rights reserved.
-*
-*  This file is part of Parflow. For details, see
-*  http://www.llnl.gov/casc/parflow
-*
-*  Please read the COPYRIGHT file or Our Notice and the LICENSE file
-*  for the GNU Lesser General Public License.
-*
-*  This program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License (as published
-*  by the Free Software Foundation) version 2.1 dated February 1999.
-*
-*  This program is distributed in the hope that it will be useful, but
-*  WITHOUT ANY WARRANTY; without even the IMPLIED WARRANTY OF
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms
-*  and conditions of the GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU Lesser General Public
-*  License along with this program; if not, write to the Free Software
-*  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-*  USA
-**********************************************************************EHEADER*/
+/*BHEADER*********************************************************************
+ *
+ *  Copyright (c) 1995-2009, Lawrence Livermore National Security,
+ *  LLC. Produced at the Lawrence Livermore National Laboratory. Written
+ *  by the Parflow Team (see the CONTRIBUTORS file)
+ *  <parflow@lists.llnl.gov> CODE-OCEC-08-103. All rights reserved.
+ *
+ *  This file is part of Parflow. For details, see
+ *  http://www.llnl.gov/casc/parflow
+ *
+ *  Please read the COPYRIGHT file or Our Notice and the LICENSE file
+ *  for the GNU Lesser General Public License.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License (as published
+ *  by the Free Software Foundation) version 2.1 dated February 1999.
+ *
+ *  This program is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the IMPLIED WARRANTY OF
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms
+ *  and conditions of the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ *  USA
+ **********************************************************************EHEADER*/
 /*****************************************************************************
 *
 *****************************************************************************/
 
 #include "parflow.h"
+#include "parflow_netcdf.h"
 
 #include <string.h>
 #include <assert.h>
@@ -206,7 +207,8 @@ void           Geometries(
   while (current_indicator_data != NULL)
   {
     InitVectorAll(tmp_indicator_field, -1.0);
-    ReadPFBinary((current_indicator_data->filename), tmp_indicator_field);
+    //ReadPFBinary((current_indicator_data->filename), tmp_indicator_field);
+    ReadPFNC((current_indicator_data->filename), tmp_indicator_field, "indicator", 0, 3);
     handle = InitVectorUpdate(tmp_indicator_field, VectorUpdateAll);
     FinalizeVectorUpdate(handle);
 
@@ -359,9 +361,14 @@ PFModule   *GeometriesNewPublicXtra()
     sprintf(key, "GeomInput.%s.InputType",
             NA_IndexToName(geom_input_na, i));
     intype_name = GetString(key);
-    intype = NA_NameToIndexExitOnError(switch_na, intype_name, key);
 
     num_new_solids = 0;
+
+    if ((intype = NA_NameToIndex(switch_na, intype_name)) < 0)
+    {
+      InputError("Error: Geometry input type <%s> is not invalid for key <%s>",
+                 intype_name, key);
+    }
 
     switch (intype)
     {
