@@ -136,6 +136,8 @@ struct SkipParallelSync { const int dummy = 0; };
 
 #define PlusEquals_kokkos(a, b) Kokkos::atomic_add(&(a), b)
 
+#define LoopFriendlyFunction_kokkos KOKKOS_FORCEINLINE_FUNCTION
+
 /** Helper struct for type comparison. @note Not for direct use! */
 template < typename T >
 struct ReduceMaxType { T value; };

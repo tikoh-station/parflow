@@ -107,6 +107,8 @@ extern "C++"{
     *addr += val;
   }
 
+#define LoopFriendlyFunction_omp
+
   /** Helper struct for type comparison (not for direct use). */
   template <typename T>
   struct ReduceMaxRes {T lambda_result;};

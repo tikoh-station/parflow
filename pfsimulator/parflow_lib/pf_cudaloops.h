@@ -288,6 +288,8 @@ struct SkipParallelSync { const int dummy = 0; };
 
 #define PlusEquals_cuda(a, b) AtomicAdd(&(a), b)
 
+#define LoopFriendlyFunction_cuda __host__ __device__ __forceinline__ static
+
 /** Helper struct for type comparison. @note Not for direct use! */
 template < typename T >
 struct ReduceMaxType { T value; };

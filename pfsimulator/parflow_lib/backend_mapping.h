@@ -160,6 +160,12 @@
   #define PlusEquals PlusEquals_default
 #endif
 
+#if defined(LoopFriendlyFunction_cuda) || defined(LoopFriendlyFunction_kokkos) || defined(LoopFriendlyFunction_omp)
+  #define LoopFriendlyFunction CHOOSE_BACKEND(DEFER(LoopFriendlyFunction), ACC_ID)
+#else
+  #define LoopFriendlyFunction LoopFriendlyFunction_default
+#endif
+
 #if defined(ReduceMax_cuda) || defined(ReduceMax_kokkos) || defined(ReduceMax_omp)
   #define ReduceMax CHOOSE_BACKEND(DEFER(ReduceMax), ACC_ID)
 #else

@@ -187,6 +187,15 @@
 #define PlusEquals_default(a, b) (a += b)
 
 /**
+ * This declares a function as able to be invoked inside the
+ * compute kernel. This macro can be called anywhere in
+ * any compute kernel.
+ *
+ * @note Multiple definitions (see backend_mapping.h).
+ */
+#define LoopFriendlyFunction_default
+
+/**
  * Thread-safe reduction to find maximum value for reduction loops.
  * Each thread must call this macro as the last statement inside the reduction loop body.
  *
