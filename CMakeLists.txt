@@ -393,18 +393,39 @@ if (${PARFLOW_ENABLE_SZLIB} OR DEFINED SZLIB_ROOT)
 endif (${PARFLOW_ENABLE_SZLIB} OR DEFINED SZLIB_ROOT)
 
 #-----------------------------------------------------------------------------
+# PSCToolKit
+#-----------------------------------------------------------------------------
+option(PARFLOW_ENABLE_PSCTOOLKIT "Build with PSCTOOLKIT" "OFF")
+if (${PARFLOW_ENABLE_PSCTOOLKIT})
+  message(STATUS "PSCTOOLKIT is enabled.")
+  find_package(PSCTOOLKIT)
+  if (${PSCTOOLKIT_FOUND})
+    set(PARFLOW_HAVE_PSCTOOLKIT "yes")
+    set(HAVE_PSCTOOLKIT ${PARFLOW_HAVE_PSCTOOLKIT})
+    set(PARFLOW_HAVE_SUNDIALS "yes")
+    set(HAVE_SUNDIALS ${PARFLOW_HAVE_SUNDIALS})
+  endif (${PSCTOOLKIT_FOUND})
+endif (${PARFLOW_ENABLE_PSCTOOLKIT})
+
+#-----------------------------------------------------------------------------
 # Sundials
 #-----------------------------------------------------------------------------
 option(PARFLOW_ENABLE_SUNDIALS "Build with SUNDIALS" "OFF")
-if (${PARFLOW_ENABLE_SUNDIALS} OR DEFINED SUNDIALS_ROOT)
+if (${PARFLOW_ENABLE_SUNDIALS})
   find_package(SUNDIALS COMPONENTS sundials_cvode sundials_kinsol sundials_core sundials_sunlinsolspgmr)
   if (${SUNDIALS_FOUND})
     set(PARFLOW_HAVE_SUNDIALS "yes")
     set(HAVE_SUNDIALS ${PARFLOW_HAVE_SUNDIALS})
   endif (${SUNDIALS_FOUND})
-else ()
-    message (STATUS "Found KINSOL: embedded")
-endif (${PARFLOW_ENABLE_SUNDIALS} OR DEFINED SUNDIALS_ROOT)
+endif (${PARFLOW_ENABLE_SUNDIALS})
+
+#-----------------------------------------------------------------------------
+# KINSOL: Embedded
+#-----------------------------------------------------------------------------
+if (NOT PARFLOW_HAVE_SUNDIALS)
+  message (STATUS "Found KINSOL: embedded")
+endif (NOT PARFLOW_HAVE_SUNDIALS)
+
 
 #-----------------------------------------------------------------------------
 # SLURM

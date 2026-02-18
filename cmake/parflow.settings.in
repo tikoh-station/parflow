@@ -30,6 +30,7 @@ SLURM Support:          @PARFLOW_HAVE_SLURM@
 
 CLM Support:            @PARFLOW_HAVE_CLM@
 Hypre Support:          @PARFLOW_HAVE_HYPRE@
+PSCTOOLKIT Support:     @PARFLOW_HAVE_PSCTOOLKIT@
 Sundials Support:       @PARFLOW_HAVE_SUNDIALS@
 
 Tcl Support:            @PARFLOW_HAVE_TCL@

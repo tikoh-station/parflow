@@ -30,9 +30,15 @@ if (${PARFLOW_HAVE_HYPRE})
   target_link_libraries (parflow Hypre::Hypre)
 endif (${PARFLOW_HAVE_HYPRE})
 
-if (${PARFLOW_HAVE_SUNDIALS})
-  target_link_libraries (parflow ${SUNDIALS_LIBRARIES})
-endif (${PARFLOW_HAVE_SUNDIALS})
+if (${PARFLOW_HAVE_PSCTOOLKIT})
+  target_compile_definitions(parflow PUBLIC ${PSBCDEFINES} ${PSBFDEFINES})
+  target_link_libraries (parflow ${PSCTOOLKIT_LIBRARIES})
+  target_link_libraries (parflow ${PSCTOOLKIT_LINKED_LIBRARIES})
+else (${PARFLOW_HAVE_PSCTOOLKIT})
+  if (${PARFLOW_HAVE_SUNDIALS})
+    target_link_libraries (parflow ${SUNDIALS_LIBRARIES})
+  endif (${PARFLOW_HAVE_SUNDIALS})
+endif (${PARFLOW_HAVE_PSCTOOLKIT})
 
 if (${PARFLOW_HAVE_MPI})
   # In CMake 3.13 this could be target_link_options
