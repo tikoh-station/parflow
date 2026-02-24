@@ -14,7 +14,7 @@ find_package(PSBLAS REQUIRED COMPONENTS psb_cbind psb_util psb_linsolve psb_prec
 
 find_package(AMG REQUIRED COMPONENTS amg_cbind amg_prec)
 
-find_package(SUNDIALS REQUIRED COMPONENTS sundials_cvode sundials_kinsol sundials_core sundials_nvecpsblas sundials_sunmatrixpsblas sundials_sunlinsolpsblas sundials_sunlinsolspgmr)
+find_package(SUNDIALS REQUIRED COMPONENTS sundials_cvode sundials_kinsol sundials_core sundials_sunlinsolspgmr sundials_sunlinsolpsblas sundials_sunmatrixpsblas sundials_nvecpsblas)
 
 set(PSCTOOLKIT_FOUND NO)
 
