@@ -476,10 +476,6 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
   State        *current_state;
 
 #if defined (PARFLOW_HAVE_SUNDIALS)
-  N_Vector fscale;
-  N_Vector uscale;
-  N_Vector pf_n_pressure;
-
   KINLsJacTimesVecFn matvec = public_xtra->matvec;
   KINLsPrecSetupFn pcinit = public_xtra->pcinit;
   KINLsPrecSolveFn pcsolve = public_xtra->pcsolve;
@@ -579,23 +575,22 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     SUNContext_Create(amps_CommWorld, &sunctx);
 
     /* Initialize empty N_Vector container for pressure variable */
-    pf_n_pressure = PF_NVNewEmpty(sunctx);
-    instance_xtra->pf_n_pressure = pf_n_pressure;
+    instance_xtra->pf_n_pressure = PF_NVNew(sunctx, grid, 1); // the reason for creating a full N_Vector as oposed to an empty one is that we need to clone it in uscale and fscale, and the clone operation requires a valid N_Vector with allocated data. We will Free the Vector that is created as part of the N_Vector since we will be replacing it with the pressure vector from SolverRichards. The reason why the clone is necessary for PSBLAS is that I only want to create the PSBLAS N_Vector once, creating a more focused interface.
+    FreeVector(N_VectorData(instance_xtra->pf_n_pressure));
+    N_VectorOwnsData(instance_xtra->pf_n_pressure) = false;
 
     /* Initialize KINSol memory and allocate KINSol vectors */
     /* Initialize scaling vectors now, so we can use as template to initialize kinsol */
-    uscale = PF_NVNew(sunctx, grid, 1);
-    InitVectorAll(N_VectorData(uscale), 1.0);
-    instance_xtra->uscale = uscale;
+    instance_xtra->uscale = N_VClone(instance_xtra->pf_n_pressure);
+    N_VConst(1.0, instance_xtra->uscale);
 
-    fscale = PF_NVNew(sunctx, grid, 1);
-    InitVectorAll(N_VectorData(fscale), 1.0);
-    instance_xtra->fscale = fscale;
+    instance_xtra->fscale = N_VClone(instance_xtra->pf_n_pressure);
+    N_VConst(1.0, instance_xtra->fscale);
 
     /* Create KINSol memory */
     kin_mem = KINCreate(sunctx);
     /* Initialize KINSol memory. Use uscale as N_Vector template */
-    KINInit(kin_mem, KINSolFunctionEval, uscale);
+    KINInit(kin_mem, KINSolFunctionEval, instance_xtra->uscale);
 
     /* Set KINSol options */
     /* set user data for problem function */
@@ -624,10 +619,10 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     KINSetScaledStepTol(kin_mem, public_xtra->step_tol);
 
     /* Create SUNDIALS linear solver object for kinsol */
-    LS = SUNLinSol_SPGMR(uscale, SUN_PREC_RIGHT, krylov_dimension, sunctx);
+    LS = SUNLinSol_SPGMR(instance_xtra->uscale, SUN_PREC_RIGHT, krylov_dimension, sunctx);
     SUNLinSol_SPGMRSetMaxRestarts(LS, max_restarts);
     /* Attach linear solver to KINSol */
-    KINSetLinearSolver(kin_mem, LS, NULL);
+    KINSetLinearSolver(kin_mem, LS, NULL); // NULL is for user-supplied Jacobian, which we are not using here since we are providing our own matvec routine
     KINSetPreconditioner(kin_mem, pcinit, pcsolve);
     KINSetJacTimesVecFn(kin_mem, matvec);
 
@@ -735,9 +730,9 @@ void  KinsolNonlinSolverFreeInstanceXtra()
     }
 
 #if defined (PARFLOW_HAVE_SUNDIALS)
-    PF_NVDestroy(instance_xtra->uscale);
-    PF_NVDestroy(instance_xtra->fscale);
-    PF_NVDestroy(instance_xtra->pf_n_pressure);
+    N_VDestroy(instance_xtra->uscale);
+    N_VDestroy(instance_xtra->fscale);
+    N_VDestroy(instance_xtra->pf_n_pressure);
 
     /* free SUNDIALS context, memory and linear solver */
     KINFree(&(instance_xtra->kin_mem));
