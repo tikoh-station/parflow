@@ -117,6 +117,14 @@ typedef struct {
   Vector   *uscale;
   Vector   *fscale;
 #endif
+
+// #ifdef PARFLOW_HAVE_PSCTOOLKIT
+//   /* PSBLAS Context */
+//   psb_c_ctxt  *cctxt;
+//   /* Get PSBLAS descriptor */
+//   psb_c_descriptor *cdh;
+// #endif
+
 } InstanceXtra;
 
 
@@ -617,6 +625,79 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     KINSetFuncNormTol(kin_mem, public_xtra->residual_tol);
 
     KINSetScaledStepTol(kin_mem, public_xtra->step_tol);
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+
+    /* Allocate a PSBLAS N_Vector to understand how it's done */
+    amps_Printf("PARFLOW_HAVE_PSCTOOLKIT\n");
+    
+    amps_Printf("GridSize(grid): %d\n", GridSize(grid));
+    int is = 0;
+    ForSubgridI(is, GridSubgrids(grid))
+    {
+      Subgrid *subgrid = GridSubgrid(grid, is);
+      amps_Printf("subgrid: %d, ix:%d iy:%d iz:%d, nx:%d ny:%d nz:%d\n", is, 
+        SubgridIX(subgrid), SubgridIY(subgrid), SubgridIZ(subgrid),
+        SubgridNX(subgrid), SubgridNY(subgrid), SubgridNZ(subgrid));
+    }
+
+    /* PSBLAS N_Vector */
+
+    psb_c_ctxt  *cctxt;             /* PSBLAS Context            */
+    psb_i_t      info;              /* Return code from PSBLAS   */
+    psb_i_t      nprocs, myid;      /* Number of procs, proc id  */
+
+    /* Create new PSBLAS Context */
+    cctxt = psb_c_new_ctxt();
+    psb_c_init_from_fint(cctxt, MPI_Comm_c2f(amps_CommWorld));
+    psb_c_info(*cctxt,&myid,&nprocs);
+    amps_Printf("myid:%d nprocs:%d\n", myid, nprocs);
+
+    /* Create new PSBLAS descriptor */
+    psb_c_descriptor *cdh = psb_c_new_descriptor();
+
+    // // allocate a context descriptor
+    // psb_c_cdall(cctxt, cdh, );
+
+    // // context descriptor is finalized in psb_c_cdasb
+    // info = psb_c_cdasb(cdh);
+    // if (info != 0) {
+    //   amps_Printf("Error in psb_c_cdasb: %d\n", info);
+    // }
+
+    // N_Vector X = N_VNew_PSBLAS(cctxt, cdh);
+
+    // N_VDestroy(X);
+
+    /* PSBLAS Linear Solver */
+
+    /* Solve method and type */
+    char methd[20] = "CG";
+    char ptype[20] = "ML";
+    /* Solver options */
+    psb_c_SolverOptions options;
+    psb_c_DefaultSolverOptions(&options);
+    // options.eps    = tol;
+    // options.itmax  = itmax; // max_iter ?
+    // options.irst   = irst; // 20?
+    // options.itrace = itrace; // 1?
+    // options.istop  = istop; // 1 ?
+
+    /* Create linear solver */
+    LS = SUNLinSol_PSBLAS(options, methd, ptype, cctxt);
+    SUNLinSolInitialize(LS);
+    SUNLinSolSeti_PSBLAS(LS,"SMOOTHER_SWEEPS",2);
+    SUNLinSolSeti_PSBLAS(LS,"SUB_FILLIN",1);
+    SUNLinSolSetc_PSBLAS(LS,"COARSE_SOLVE","BJAC");
+    SUNLinSolSetc_PSBLAS(LS,"COARSE_SUBSOLVE","ILU");
+    SUNLinSolSeti_PSBLAS(LS,"COARSE_FILLIN",0);
+    amps_Printf("Created PSBLAS linear solver\n");
+    SUNLinSolFree(LS);
+
+    psb_c_delete_descriptor(cdh);
+    psb_c_delete_ctxt(cctxt);
+
+#endif
 
     /* Create SUNDIALS linear solver object for kinsol */
     LS = SUNLinSol_SPGMR(instance_xtra->uscale, SUN_PREC_RIGHT, krylov_dimension, sunctx);

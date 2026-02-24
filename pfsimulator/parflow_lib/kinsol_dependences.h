@@ -25,12 +25,26 @@
 *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 *  USA
 **********************************************************************EHEADER*/
-#if defined (PARFLOW_HAVE_SUNDIALS)
+#ifdef PARFLOW_HAVE_SUNDIALS
+
 #include "kinsol/kinsol.h"
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+
+#include <nvector/nvector_psblas.h>
+#include <sunlinsol/sunlinsol_psblas.h>
+#include <sunlinsol/sunlinsol_spgmr.h>
+
+#else // PARFLOW_HAVE_PSCTOOLKIT
+
 #include <sunlinsol/sunlinsol_spgmr.h> /* access to SPGMR SUNLinearSolver      */
-#else
+#endif // PARFLOW_HAVE_PSCTOOLKIT
+
+#else // PARFLOW_HAVE_SUNDIALS
+
 #include "../kinsol/kinsol.h"
 #include "../kinsol/iterativ.h"
 #include "../kinsol/kinspgmr.h"
 #include "../kinsol/spgmr.h"
-#endif
+
+#endif // PARFLOW_HAVE_SUNDIALS
