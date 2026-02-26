@@ -130,6 +130,10 @@ set (SRC_FILES_CONST advect.F
   write_parflow_silo_pmpio.c
 )
 
+if(${PARFLOW_HAVE_PSCTOOLKIT})
+  list(APPEND SRC_FILES_CONST psblas_session.c)
+endif(${PARFLOW_HAVE_PSCTOOLKIT})
+
 if( (${PARFLOW_HAVE_CUDA}) OR (${PARFLOW_HAVE_KOKKOS}) OR (${PARFLOW_HAVE_OMP}) )
 
   set (SRC_FILES_ARCH_TYPE_0

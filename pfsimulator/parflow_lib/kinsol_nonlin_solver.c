@@ -629,45 +629,12 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
 #ifdef PARFLOW_HAVE_PSCTOOLKIT
 
     /* Allocate a PSBLAS N_Vector to understand how it's done */
-    amps_Printf("PARFLOW_HAVE_PSCTOOLKIT\n");
-    
-    amps_Printf("GridSize(grid): %d\n", GridSize(grid));
-    int is = 0;
-    ForSubgridI(is, GridSubgrids(grid))
-    {
-      Subgrid *subgrid = GridSubgrid(grid, is);
-      amps_Printf("subgrid: %d, ix:%d iy:%d iz:%d, nx:%d ny:%d nz:%d\n", is, 
-        SubgridIX(subgrid), SubgridIY(subgrid), SubgridIZ(subgrid),
-        SubgridNX(subgrid), SubgridNY(subgrid), SubgridNZ(subgrid));
-    }
+    PSBLASSession *psb_session = NewPSBLASSession();
+    InitPSBLASSession(psb_session, grid);
 
-    /* PSBLAS N_Vector */
-
-    psb_c_ctxt  *cctxt;             /* PSBLAS Context            */
-    psb_i_t      info;              /* Return code from PSBLAS   */
-    psb_i_t      nprocs, myid;      /* Number of procs, proc id  */
-
-    /* Create new PSBLAS Context */
-    cctxt = psb_c_new_ctxt();
-    psb_c_init_from_fint(cctxt, MPI_Comm_c2f(amps_CommWorld));
-    psb_c_info(*cctxt,&myid,&nprocs);
-    amps_Printf("myid:%d nprocs:%d\n", myid, nprocs);
-
-    /* Create new PSBLAS descriptor */
-    psb_c_descriptor *cdh = psb_c_new_descriptor();
-
-    // // allocate a context descriptor
-    // psb_c_cdall(cctxt, cdh, );
-
-    // // context descriptor is finalized in psb_c_cdasb
-    // info = psb_c_cdasb(cdh);
-    // if (info != 0) {
-    //   amps_Printf("Error in psb_c_cdasb: %d\n", info);
-    // }
-
-    // N_Vector X = N_VNew_PSBLAS(cctxt, cdh);
-
-    // N_VDestroy(X);
+    N_Vector Y = N_VNew_PSBLAS(PSBLASSessionContext(psb_session), PSBLASSessionDescriptor(psb_session));
+    N_VConst(0.5, Y);
+    N_VDestroy(Y);
 
     /* PSBLAS Linear Solver */
 
@@ -684,18 +651,16 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     // options.istop  = istop; // 1 ?
 
     /* Create linear solver */
-    LS = SUNLinSol_PSBLAS(options, methd, ptype, cctxt);
+    LS = SUNLinSol_PSBLAS(options, methd, ptype, PSBLASSessionContext(psb_session));
     SUNLinSolInitialize(LS);
-    SUNLinSolSeti_PSBLAS(LS,"SMOOTHER_SWEEPS",2);
-    SUNLinSolSeti_PSBLAS(LS,"SUB_FILLIN",1);
-    SUNLinSolSetc_PSBLAS(LS,"COARSE_SOLVE","BJAC");
-    SUNLinSolSetc_PSBLAS(LS,"COARSE_SUBSOLVE","ILU");
-    SUNLinSolSeti_PSBLAS(LS,"COARSE_FILLIN",0);
-    amps_Printf("Created PSBLAS linear solver\n");
+    SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
+    SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
+    SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "BJAC");
+    SUNLinSolSetc_PSBLAS(LS, "COARSE_SUBSOLVE", "ILU");
+    SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
     SUNLinSolFree(LS);
 
-    psb_c_delete_descriptor(cdh);
-    psb_c_delete_ctxt(cctxt);
+    FreePSBLASSession(psb_session);
 
 #endif
 

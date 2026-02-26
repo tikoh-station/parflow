@@ -74,6 +74,7 @@
 #include "problem.h"
 #include "solver.h"
 #include "nl_function_eval.h"
+#include "psblas_session.h"
 #include "parflow_proto.h"
 #include "parflow_proto_f.h"
 
