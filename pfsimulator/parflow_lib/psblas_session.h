@@ -49,6 +49,11 @@ void FreePSBLASSession(PSBLASSession *session);
 void InitPSBLASSession(PSBLASSession *session, Grid *grid);
 
 
+void Set_N_Vector_From_Vector(N_Vector nvec, Vector *vec);
+
+void Set_Vector_From_N_Vector(Vector *vec, N_Vector nvec);
+
+
 #define PSBLASSessionContext(session) ((session)->context)
 #define PSBLASSessionDescriptor(session) ((session)->descriptor)
 

@@ -90,8 +90,15 @@ int     KINSolFunctionEval(
                            N_Vector pf_n_fval,
                            void *   current_state)
 {
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
   Vector      *pressure = N_VectorData(pf_n_pressure);
   Vector      *fval = N_VectorData(pf_n_fval);
+#else // PARFLOW_HAVE_PSCTOOLKIT
+  Vector *pressure = StatePressureAux((State*)current_state);
+  Set_Vector_From_N_Vector(pressure, pf_n_pressure);
+  Vector *fval = StateFvalAux((State*)current_state);
+  Set_Vector_From_N_Vector(fval, pf_n_fval);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   PFModule  *nl_function_eval = StateFunc(((State*)current_state));
   ProblemData *problem_data = StateProblemData(((State*)current_state));
@@ -118,6 +125,11 @@ int     KINSolFunctionEval(
                       density, old_density, dt, time, old_pressure, evap_trans,
                       ovrl_bc_flx, x_velocity, y_velocity, z_velocity,
                       q_overlnd_x, q_overlnd_y));
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_N_Vector_From_Vector(pf_n_pressure, pressure);
+  Set_N_Vector_From_Vector(pf_n_fval, fval);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   return(0);
 }

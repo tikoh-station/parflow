@@ -106,3 +106,71 @@ void InitPSBLASSession(PSBLASSession *session, Grid *grid)
 
   return;
 }
+
+void Set_N_Vector_From_Vector(N_Vector nvec, Vector *vec)
+{
+  double *psb_data = N_VGetArrayPointer(nvec);
+
+  Grid *grid = VectorGrid(vec);
+
+  int is = 0;
+  ForSubgridI(is, GridSubgrids(grid))
+  {
+    Subgrid *subgrid = GridSubgrid(grid, is);
+    Subvector *v_sub = VectorSubvector(vec, is);
+    double *v_data = SubvectorData(v_sub);
+
+    int ix = SubgridIX(subgrid);
+    int iy = SubgridIY(subgrid);
+    int iz = SubgridIZ(subgrid);
+    int nx = SubgridNX(subgrid);
+    int ny = SubgridNY(subgrid);
+    int nz = SubgridNZ(subgrid);
+    int nx_v = SubvectorNX(v_sub);
+    int ny_v = SubvectorNY(v_sub);
+    int nz_v = SubvectorNZ(v_sub);
+
+    int i = 0, j = 0, k = 0, pf_idx = 0;
+    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+              pf_idx, nx_v, ny_v, nz_v, 1, 1, 1,
+    {
+      int psb_idx = SubgridEltIndex(subgrid, i, j, k);
+      psb_data[psb_idx] = v_data[pf_idx];
+    });
+  }
+  return;
+}
+
+void Set_Vector_From_N_Vector(Vector *vec, N_Vector nvec)
+{
+  double *psb_data = N_VGetArrayPointer(nvec);
+
+  Grid *grid = VectorGrid(vec);
+
+  int is = 0;
+  ForSubgridI(is, GridSubgrids(grid))
+  {
+    Subgrid *subgrid = GridSubgrid(grid, is);
+    Subvector *v_sub = VectorSubvector(vec, is);
+    double *v_data = SubvectorData(v_sub);
+
+    int ix = SubgridIX(subgrid);
+    int iy = SubgridIY(subgrid);
+    int iz = SubgridIZ(subgrid);
+    int nx = SubgridNX(subgrid);
+    int ny = SubgridNY(subgrid);
+    int nz = SubgridNZ(subgrid);
+    int nx_v = SubvectorNX(v_sub);
+    int ny_v = SubvectorNY(v_sub);
+    int nz_v = SubvectorNZ(v_sub);
+
+    int i = 0, j = 0, k = 0, pf_idx = 0;
+    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+              pf_idx, nx_v, ny_v, nz_v, 1, 1, 1,
+    {
+      int psb_idx = SubgridEltIndex(subgrid, i, j, k);
+      v_data[pf_idx] = psb_data[psb_idx];
+    });
+  }
+  return;
+}

@@ -118,12 +118,14 @@ typedef struct {
   Vector   *fscale;
 #endif
 
-// #ifdef PARFLOW_HAVE_PSCTOOLKIT
-//   /* PSBLAS Context */
-//   psb_c_ctxt  *cctxt;
-//   /* Get PSBLAS descriptor */
-//   psb_c_descriptor *cdh;
-// #endif
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  /* PSBLAS Session - holds important PSBLAS objects */  
+  PSBLASSession *psb_session;
+
+  /* Cache Vector objs to hold values from PSBLAS N_Vector */
+  Vector *pressure_aux;
+  Vector *fval_aux;
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
 } InstanceXtra;
 
@@ -143,7 +145,12 @@ int  KINSolInitPC(
                   N_Vector pf_n_fscale,
                   void *   current_state)
 {
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
   Vector      *pressure = N_VectorData(pf_n_pressure);
+#else // PARFLOW_HAVE_PSCTOOLKIT
+  Vector *pressure = StatePressureAux((State*)current_state);
+  Set_Vector_From_N_Vector(pressure, pf_n_pressure);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   (void)pf_n_uscale;
   (void)pf_n_fval;
@@ -186,6 +193,11 @@ int  KINSolInitPC(
 
   PFModuleReNewInstanceType(KinsolPCInitInstanceXtraInvoke, precond, (NULL, NULL, NULL, problem_data, NULL,
                                                                       pressure, old_pressure, saturation, density, dt, time));
+  
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_N_Vector_From_Vector(pf_n_pressure, pressure);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
+
   return(0);
 }
 
@@ -208,7 +220,13 @@ int   KINSolCallPC(
   (void)pf_n_uscale;
   (void)pf_n_fval;
   (void)pf_n_fscale;
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
   Vector      *vtem = N_VectorData(pf_n_vtem);
+#else // PARFLOW_HAVE_PSCTOOLKIT
+  Vector *vtem = StatePressureAux((State*)current_state);
+  Set_Vector_From_N_Vector(vtem, pf_n_vtem);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
+
 #else
 int   KINSolCallPC(
                    int       neq,
@@ -239,6 +257,10 @@ int   KINSolCallPC(
    * itself */
 
   PFModuleInvokeType(KinsolPCInvoke, precond, (vtem));
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_N_Vector_From_Vector(pf_n_vtem, vtem);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   return(0);
 }
@@ -358,6 +380,10 @@ int KinsolNonlinSolver(Vector *pressure, Vector *density, Vector *old_density, V
   StateOldSaturation(current_state) = old_saturation;
   StateDensity(current_state) = density;
   StateSaturation(current_state) = saturation;
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  StatePressureAux(current_state) = instance_xtra->pressure_aux;
+  StateFvalAux(current_state) = instance_xtra->fval_aux;
+#endif // PARFLOW_HAVE_PSCTOOLKIT
   StateJacEval(current_state) = richards_jacobian_eval;
   StateJac(current_state) = jacobian_matrix;
   StateJacC(current_state) = jacobian_matrix_C;           //dok
@@ -377,7 +403,11 @@ int KinsolNonlinSolver(Vector *pressure, Vector *density, Vector *old_density, V
 
 #if defined (PARFLOW_HAVE_SUNDIALS)
   /* Attach parflow Vector to N_Vector object */
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
   N_VectorData(pf_n_pressure) = pressure;
+#else // PARFLOW_HAVE_PSCTOOLKIT
+  Set_N_Vector_From_Vector(pf_n_pressure, pressure);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   /* Call KINSol */
   ret = KINSol(kin_mem,                      /* Memory allocated above */
@@ -386,6 +416,10 @@ int KinsolNonlinSolver(Vector *pressure, Vector *density, Vector *old_density, V
                uscale,             /* Scalings for the variable */
                fscale              /* Scalings for the function */
                );
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_Vector_From_N_Vector(pressure, pf_n_pressure);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   EndTiming(public_xtra->time_index);
 
@@ -582,10 +616,23 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     /* This needs to be created once? So perhaps should be created elsewhere upstream */
     SUNContext_Create(amps_CommWorld, &sunctx);
 
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
     /* Initialize empty N_Vector container for pressure variable */
     instance_xtra->pf_n_pressure = PF_NVNew(sunctx, grid, 1); // the reason for creating a full N_Vector as oposed to an empty one is that we need to clone it in uscale and fscale, and the clone operation requires a valid N_Vector with allocated data. We will Free the Vector that is created as part of the N_Vector since we will be replacing it with the pressure vector from SolverRichards. The reason why the clone is necessary for PSBLAS is that I only want to create the PSBLAS N_Vector once, creating a more focused interface.
-    FreeVector(N_VectorData(instance_xtra->pf_n_pressure));
-    N_VectorOwnsData(instance_xtra->pf_n_pressure) = false;
+#else // PARFLOW_HAVE_PSCTOOLKIT
+    instance_xtra->psb_session = NewPSBLASSession();
+    InitPSBLASSession(instance_xtra->psb_session, grid);
+
+    /* Initialize N_Vector container for pressure variable */
+    instance_xtra->pf_n_pressure = N_VNew_PSBLAS(
+      PSBLASSessionContext(instance_xtra->psb_session), 
+      PSBLASSessionDescriptor(instance_xtra->psb_session)
+    );
+    N_VConst(0.0, instance_xtra->pf_n_pressure);
+
+    instance_xtra->pressure_aux = NewVectorType(grid, 1, 1, vector_cell_centered);
+    instance_xtra->fval_aux = NewVectorType(grid, 1, 1, vector_cell_centered);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
     /* Initialize KINSol memory and allocate KINSol vectors */
     /* Initialize scaling vectors now, so we can use as template to initialize kinsol */
@@ -594,6 +641,11 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
 
     instance_xtra->fscale = N_VClone(instance_xtra->pf_n_pressure);
     N_VConst(1.0, instance_xtra->fscale);
+
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
+    FreeVector(N_VectorData(instance_xtra->pf_n_pressure));
+    N_VectorOwnsData(instance_xtra->pf_n_pressure) = false;
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
     /* Create KINSol memory */
     kin_mem = KINCreate(sunctx);
@@ -629,12 +681,46 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
 #ifdef PARFLOW_HAVE_PSCTOOLKIT
 
     /* Allocate a PSBLAS N_Vector to understand how it's done */
-    PSBLASSession *psb_session = NewPSBLASSession();
-    InitPSBLASSession(psb_session, grid);
 
-    N_Vector Y = N_VNew_PSBLAS(PSBLASSessionContext(psb_session), PSBLASSessionDescriptor(psb_session));
-    N_VConst(0.5, Y);
-    N_VDestroy(Y);
+    N_Vector nvec = N_VNew_PSBLAS(
+      PSBLASSessionContext(instance_xtra->psb_session), 
+      PSBLASSessionDescriptor(instance_xtra->psb_session)
+    );
+    
+    Vector *vec = NewVectorType(grid, 1, 1, vector_cell_centered);
+
+    amps_Printf("Testing PSBLAS N_Vector and interface functions \n");
+    N_VConst(0.0, nvec);
+    InitVectorAll(vec, 1.0);
+
+    Subvector *sv = VectorSubvector(vec, 0);
+    int i = 2, j = 2, k = 2;
+    int idx = SubvectorEltIndex(sv, i, j, k);
+    double *data = SubvectorData(sv);
+    amps_Printf("i = %d, j = %d, k = %d, data = %f\n", i, j, k, data[idx]);
+    // prints 1.0 as expected
+
+    // InitVectorAll(vec, 1.5);
+    N_VConst(2.5, nvec);
+    N_VConst(1.0, nvec);
+    Set_Vector_From_N_Vector(vec, nvec);
+    
+    amps_Printf("i = %d, j = %d, k = %d, data = %f\n", i, j, k, data[idx]);
+    // prints 3.5 !!!
+    
+    FreeVector(vec);
+    N_VDestroy(nvec);
+
+    /* Allocate a SUNMatrix PSBLAS to see how it's done */
+
+    SUNMatrix A = SUNPSBLASMatrix(
+      PSBLASSessionContext(instance_xtra->psb_session), 
+      PSBLASSessionDescriptor(instance_xtra->psb_session)
+    );
+
+    SUNMatZero(A);
+
+    SUNMatDestroy(A);
 
     /* PSBLAS Linear Solver */
 
@@ -651,7 +737,8 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     // options.istop  = istop; // 1 ?
 
     /* Create linear solver */
-    LS = SUNLinSol_PSBLAS(options, methd, ptype, PSBLASSessionContext(psb_session));
+    LS = SUNLinSol_PSBLAS(options, methd, ptype, 
+      PSBLASSessionContext(instance_xtra->psb_session));
     SUNLinSolInitialize(LS);
     SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
     SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
@@ -660,9 +747,11 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
     SUNLinSolFree(LS);
 
-    FreePSBLASSession(psb_session);
+    // KINSetLinearSolver(kin_mem, LS, NULL); // here the SUNMatrix cannot be NULL because the linear solver must hold the Jacobian data structure. We provide the JacFcn, but the latter will only modify the coefficients - it will not create a new SUNMatrix
+    // KINSetPreconditioner(kin_mem, pcinit, pcsolve);
+    // KINSetJacFn(kin_mem, matfcn);
 
-#endif
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
     /* Create SUNDIALS linear solver object for kinsol */
     LS = SUNLinSol_SPGMR(instance_xtra->uscale, SUN_PREC_RIGHT, krylov_dimension, sunctx);
@@ -791,6 +880,11 @@ void  KinsolNonlinSolverFreeInstanceXtra()
     /* free kinsol memory */
     KINFree((instance_xtra->kin_mem));
 #endif
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+    FreeVector(instance_xtra->fval_aux);
+    FreeVector(instance_xtra->pressure_aux);
+    FreePSBLASSession(instance_xtra->psb_session);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
     tfree(instance_xtra->current_state);
 
     if (instance_xtra->kinsol_file)

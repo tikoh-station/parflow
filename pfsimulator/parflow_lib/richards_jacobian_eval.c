@@ -158,10 +158,18 @@ int       KINSolMatVec(
                        int *    recompute,
                        void *   current_state)
 {
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
   Vector      *x = N_VectorData(pf_n_x);
   Vector      *y = N_VectorData(pf_n_y);
   Vector      *pressure = N_VectorData(pf_n_pressure);
-#else
+#else // PARFLOW_HAVE_PSCTOOLKIT
+  Vector *x = StatePressureAux((State*)current_state);
+  Vector *y = StateFvalAux((State*)current_state);
+  Vector *pressure = StatePressureAux((State*)current_state);
+  Set_Vector_From_N_Vector(pressure, pf_n_pressure);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
+
+#else // PARFLOW_HAVE_SUNDIALS
 int       KINSolMatVec(
                        void *   current_state,
                        N_Vector x,
@@ -169,7 +177,7 @@ int       KINSolMatVec(
                        int *    recompute,
                        N_Vector pressure)
 {
-#endif
+#endif // PARFLOW_HAVE_SUNDIALS
   PFModule    *richards_jacobian_eval = StateJacEval(((State*)current_state));
   Matrix      *J = StateJac(((State*)current_state));
   Matrix      *JC = StateJacC(((State*)current_state));
@@ -202,10 +210,19 @@ int       KINSolMatVec(
     StateJacC(((State*)current_state)) = JC;
   }
 
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_Vector_From_N_Vector(x, pf_n_x);
+  Set_Vector_From_N_Vector(y, pf_n_y);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
+
   if (JC == NULL)
     Matvec(1.0, J, x, 0.0, y);
   else
     MatvecSubMat(current_state, 1.0, J, JC, x, 0.0, y);
+
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Set_N_Vector_From_Vector(pf_n_y, y);
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   return(0);
 }

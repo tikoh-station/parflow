@@ -45,6 +45,10 @@ typedef struct {
   Vector      *old_pressure;
   Vector      *density;
   Vector      *saturation;
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+  Vector      *pressure_aux;
+  Vector      *fval_aux;
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
   double dt;
   double time;
@@ -75,6 +79,10 @@ typedef struct {
 #define StateOldSaturation(state) ((state)->old_saturation)
 #define StateDensity(state)       ((state)->density)
 #define StateSaturation(state)    ((state)->saturation)
+#ifdef PARFLOW_HAVE_PSCTOOLKIT
+#define StatePressureAux(state)   ((state)->pressure_aux)
+#define StateFvalAux(state)       ((state)->fval_aux)
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 #define StateDt(state)            ((state)->dt)
 #define StateTime(state)          ((state)->time)
 #define StateJacEval(state)       ((state)->richards_jacobian_eval)

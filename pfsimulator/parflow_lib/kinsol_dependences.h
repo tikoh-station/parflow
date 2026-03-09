@@ -32,6 +32,7 @@
 #ifdef PARFLOW_HAVE_PSCTOOLKIT
 
 #include <nvector/nvector_psblas.h>
+#include <sunmatrix/sunmatrix_psblas.h>
 #include <sunlinsol/sunlinsol_psblas.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
 
