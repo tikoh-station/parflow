@@ -39,6 +39,8 @@ typedef struct {
   psb_c_ctxt *context;          /* PSBLAS Context */
   psb_c_descriptor *descriptor; /* PSBLAS Descriptor */
 
+  SUNMatrix sunmat; /* PSBLAS SUNMatrix object */
+
 } PSBLASSession;
 
 
@@ -65,8 +67,9 @@ int KINSolJacobianFunction(N_Vector pf_n_pressure,
                            N_Vector pf_n_tmp1,
                            N_Vector pf_n_tmp2);
 
-#define PSBLASSessionContext(session) ((session)->context)
+#define PSBLASSessionContext(session)    ((session)->context)
 #define PSBLASSessionDescriptor(session) ((session)->descriptor)
+#define PSBLASSessionSUNMatrix(session)  ((session)->sunmat)
 
 #endif // _PSBLAS_SESSION_HEADER
 

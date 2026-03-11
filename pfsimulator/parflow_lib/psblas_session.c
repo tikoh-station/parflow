@@ -38,6 +38,12 @@ PSBLASSession* NewPSBLASSession()
   /* Create new PSBLAS Descriptor */
   PSBLASSessionDescriptor(session) = psb_c_new_descriptor();
 
+  /* Create PSBLAS SUNMatrix */
+  PSBLASSessionSUNMatrix(session) = SUNPSBLASMatrix(
+      PSBLASSessionContext(session), 
+      PSBLASSessionDescriptor(session)
+    );
+
   return session;
 }
 
@@ -45,6 +51,8 @@ void FreePSBLASSession(PSBLASSession *session)
 {
   if (session != NULL)
   {
+    SUNMatDestroy(PSBLASSessionSUNMatrix(session));
+
     psb_c_cdfree(PSBLASSessionDescriptor(session));
     psb_c_delete_descriptor(PSBLASSessionDescriptor(session));
 

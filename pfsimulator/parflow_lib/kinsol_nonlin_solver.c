@@ -678,80 +678,7 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
 
     KINSetScaledStepTol(kin_mem, public_xtra->step_tol);
 
-#ifdef PARFLOW_HAVE_PSCTOOLKIT
-
-    /* Allocate a PSBLAS N_Vector to understand how it's done */
-
-    N_Vector nvec = N_VNew_PSBLAS(
-      PSBLASSessionContext(instance_xtra->psb_session), 
-      PSBLASSessionDescriptor(instance_xtra->psb_session)
-    );
-    
-    Vector *vec = NewVectorType(grid, 1, 1, vector_cell_centered);
-
-    amps_Printf("Testing PSBLAS N_Vector and interface functions \n");
-    N_VConst(0.0, nvec);
-    InitVectorAll(vec, 1.0);
-
-    Subvector *sv = VectorSubvector(vec, 0);
-    int i = 2, j = 2, k = 2;
-    int idx = SubvectorEltIndex(sv, i, j, k);
-    double *data = SubvectorData(sv);
-    amps_Printf("i = %d, j = %d, k = %d, data = %f\n", i, j, k, data[idx]);
-    // prints 1.0 as expected
-
-    // InitVectorAll(vec, 1.5);
-    N_VConst(2.5, nvec);
-    N_VConst(1.0, nvec);
-    Set_Vector_From_N_Vector(vec, nvec);
-    
-    amps_Printf("i = %d, j = %d, k = %d, data = %f\n", i, j, k, data[idx]);
-    // prints 3.5 !!!
-    
-    FreeVector(vec);
-    N_VDestroy(nvec);
-
-    /* Allocate a SUNMatrix PSBLAS to see how it's done */
-
-    SUNMatrix A = SUNPSBLASMatrix(
-      PSBLASSessionContext(instance_xtra->psb_session), 
-      PSBLASSessionDescriptor(instance_xtra->psb_session)
-    );
-
-    SUNMatZero(A);
-
-    SUNMatDestroy(A);
-
-    /* PSBLAS Linear Solver */
-
-    /* Solve method and type */
-    char methd[20] = "CG";
-    char ptype[20] = "ML";
-    /* Solver options */
-    psb_c_SolverOptions options;
-    psb_c_DefaultSolverOptions(&options);
-    // options.eps    = tol;
-    // options.itmax  = itmax; // max_iter ?
-    // options.irst   = irst; // 20?
-    // options.itrace = itrace; // 1?
-    // options.istop  = istop; // 1 ?
-
-    /* Create linear solver */
-    LS = SUNLinSol_PSBLAS(options, methd, ptype, 
-      PSBLASSessionContext(instance_xtra->psb_session));
-    SUNLinSolInitialize(LS);
-    SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
-    SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
-    SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "BJAC");
-    SUNLinSolSetc_PSBLAS(LS, "COARSE_SUBSOLVE", "ILU");
-    SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
-    SUNLinSolFree(LS);
-
-    // KINSetLinearSolver(kin_mem, LS, NULL); // here the SUNMatrix cannot be NULL because the linear solver must hold the Jacobian data structure. We provide the JacFcn, but the latter will only modify the coefficients - it will not create a new SUNMatrix
-    // KINSetPreconditioner(kin_mem, pcinit, pcsolve);
-    // KINSetJacFn(kin_mem, matfcn);
-
-#endif // PARFLOW_HAVE_PSCTOOLKIT
+#ifndef PARFLOW_HAVE_PSCTOOLKIT
 
     /* Create SUNDIALS linear solver object for kinsol */
     LS = SUNLinSol_SPGMR(instance_xtra->uscale, SUN_PREC_RIGHT, krylov_dimension, sunctx);
@@ -760,6 +687,35 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     KINSetLinearSolver(kin_mem, LS, NULL); // NULL is for user-supplied Jacobian, which we are not using here since we are providing our own matvec routine
     KINSetPreconditioner(kin_mem, pcinit, pcsolve);
     KINSetJacTimesVecFn(kin_mem, matvec);
+
+#else // PARFLOW_HAVE_PSCTOOLKIT
+    
+    /* Solve method and type */
+    char methd[20] = "CG";
+    char ptype[20] = "ML";
+    /* Solver options */
+    psb_c_SolverOptions options;
+    psb_c_DefaultSolverOptions(&options);
+    options.eps    = eta_value;
+    options.itmax  = max_iter;
+    options.irst   = 20;
+    options.itrace = 1;
+    options.istop  = 1;
+
+    /* Create PSBLAS linear solver object for kinsol */
+    LS = SUNLinSol_PSBLAS(options, methd, ptype, 
+      PSBLASSessionContext(instance_xtra->psb_session));
+    SUNLinSolInitialize(LS);
+    SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
+    SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
+    SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "BJAC");
+    SUNLinSolSetc_PSBLAS(LS, "COARSE_SUBSOLVE", "ILU");
+    SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
+
+    KINSetLinearSolver(kin_mem, LS, PSBLASSessionSUNMatrix(instance_xtra->psb_session));
+    KINSetJacFn(kin_mem, KINSolJacobianFunction);
+
+#endif // PARFLOW_HAVE_PSCTOOLKIT
 
     /* Initialize total statistics counts*/
     instance_xtra->tot_nonlin_iters = 0;
