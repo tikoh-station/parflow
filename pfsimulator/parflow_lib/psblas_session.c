@@ -38,12 +38,6 @@ PSBLASSession* NewPSBLASSession()
   /* Create new PSBLAS Descriptor */
   PSBLASSessionDescriptor(session) = psb_c_new_descriptor();
 
-  /* Create PSBLAS SUNMatrix */
-  PSBLASSessionSUNMatrix(session) = SUNPSBLASMatrix(
-      PSBLASSessionContext(session), 
-      PSBLASSessionDescriptor(session)
-    );
-
   return session;
 }
 
@@ -111,6 +105,12 @@ void InitPSBLASSession(PSBLASSession *session, Grid *grid)
   if (info != 0) {
     amps_Printf("Error in psb_c_cdasb: %d\n", info);
   }
+
+  /* Create PSBLAS SUNMatrix */
+  PSBLASSessionSUNMatrix(session) = SUNPSBLASMatrix(
+      PSBLASSessionContext(session), 
+      PSBLASSessionDescriptor(session)
+    );
 
   return;
 }
