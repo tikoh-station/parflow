@@ -53,6 +53,17 @@ void Set_N_Vector_From_Vector(N_Vector nvec, Vector *vec);
 
 void Set_Vector_From_N_Vector(Vector *vec, N_Vector nvec);
 
+void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
+                               Matrix *JB,
+                               Matrix *JC,
+                               void *current_state);
+
+int KINSolJacobianFunction(N_Vector pf_n_pressure,
+                           N_Vector pf_n_fval,
+                           SUNMatrix Jacobian,
+                           void *current_state,
+                           N_Vector pf_n_tmp1,
+                           N_Vector pf_n_tmp2);
 
 #define PSBLASSessionContext(session) ((session)->context)
 #define PSBLASSessionDescriptor(session) ((session)->descriptor)
