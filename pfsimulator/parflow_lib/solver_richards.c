@@ -919,7 +919,7 @@ SetupRichards(PFModule * this_module)
     /* SGS FIXME why are these here and not created in instance_xtra ? */
     instance_xtra->pressure =
       NewVectorType(grid, 1, 1, vector_cell_centered);
-    InitVectorAll(instance_xtra->pressure, -FLT_MAX);
+    InitVectorAll(instance_xtra->pressure, 0.0); //-FLT_MAX);
 
     instance_xtra->saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
@@ -5004,7 +5004,8 @@ SolverRichardsInitInstanceXtra()
     (instance_xtra->set_problem_data) =
       PFModuleNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                               (public_xtra->set_problem_data),
-                              (problem, grid, grid2d, NULL));
+                              (problem, grid, grid2d, NULL,
+                               instance_xtra->problem_data));
 
     (instance_xtra->retardation) =
       PFModuleNewInstanceType(RetardationInitInstanceXtraInvoke,
@@ -5045,7 +5046,7 @@ SolverRichardsInitInstanceXtra()
                               (problem, grid, NULL));
     PFModuleReNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                               (instance_xtra->set_problem_data),
-                              (problem, grid, grid2d, NULL));
+                              (problem, grid, grid2d, NULL, instance_xtra->problem_data));
 
     PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
                               (instance_xtra->retardation), (NULL));
@@ -5137,7 +5138,7 @@ SolverRichardsInitInstanceXtra()
   /* renew set_problem_data module */
   PFModuleReNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                             (instance_xtra->set_problem_data),
-                            (NULL, NULL, NULL, temp_data));
+                            (NULL, NULL, NULL, temp_data, instance_xtra->problem_data));
 
   /* renew velocity computation modules that take temporary data */
   /*

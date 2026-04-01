@@ -1774,7 +1774,7 @@ PFModule *SolverImpesInitInstanceXtra()
     (instance_xtra->set_problem_data) =
       PFModuleNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                               (public_xtra->set_problem_data),
-                              (problem, grid, NULL, NULL));
+                              (problem, grid, NULL, NULL, instance_xtra->problem_data));
 
     (instance_xtra->retardation) =
       PFModuleNewInstanceType(RetardationInitInstanceXtraInvoke,
@@ -1832,7 +1832,7 @@ PFModule *SolverImpesInitInstanceXtra()
                               (problem, grid, NULL));
     PFModuleReNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                               (instance_xtra->set_problem_data),
-                              (problem, grid, NULL, NULL));
+                              (problem, grid, NULL, NULL, instance_xtra->problem_data));
     PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
                               (instance_xtra->retardation), (NULL));
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
@@ -1913,7 +1913,7 @@ PFModule *SolverImpesInitInstanceXtra()
   /* renew set_problem_data module */
   PFModuleReNewInstanceType(SetProblemDataInitInstanceXtraInvoke,
                             (instance_xtra->set_problem_data),
-                            (NULL, NULL, NULL, temp_data));
+                            (NULL, NULL, NULL, temp_data, instance_xtra->problem_data));
 
   /* renew pressure solve modules that take temporary data */
   PFModuleReNewInstanceType(DiscretizePressureInitInstanceXtraInvoke,
