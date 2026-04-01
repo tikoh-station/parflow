@@ -61,6 +61,8 @@ void FreePSBLASSession(PSBLASSession *session)
 
 void InitPSBLASSession(PSBLASSession *session, Grid *grid)
 {
+  psb_i_t info = 0;
+
   /* Init PSBLAS Context */
   psb_c_init_from_fint(PSBLASSessionContext(session), MPI_Comm_c2f(amps_CommWorld));
 
@@ -97,11 +99,14 @@ void InitPSBLASSession(PSBLASSession *session, Grid *grid)
   }
 
   /* allocate a context descriptor */
-  psb_c_cdall_vl(nl, vl, *PSBLASSessionContext(session), PSBLASSessionDescriptor(session));
+  info = psb_c_cdall_vl(nl, vl, *PSBLASSessionContext(session), PSBLASSessionDescriptor(session));
   free(vl);
+  if (info != 0) {
+    amps_Printf("Error in psb_c_cdall_vl: %d\n", info);
+  }
 
   /* context descriptor is finalized in psb_c_cdasb */
-  psb_i_t info = psb_c_cdasb(PSBLASSessionDescriptor(session));
+  info = psb_c_cdasb(PSBLASSessionDescriptor(session));
   if (info != 0) {
     amps_Printf("Error in psb_c_cdasb: %d\n", info);
   }
@@ -111,6 +116,10 @@ void InitPSBLASSession(PSBLASSession *session, Grid *grid)
       PSBLASSessionContext(session), 
       PSBLASSessionDescriptor(session)
     );
+
+  if (PSBLASSessionSUNMatrix(session) == NULL) {
+    amps_Printf("Error: Failure to create a SUNMatrix\n");
+  }
 
   return;
 }
