@@ -65,6 +65,7 @@ void InitPSBLASSession(PSBLASSession *session, Grid *grid)
 
   /* Init PSBLAS Context */
   psb_c_init_from_fint(PSBLASSessionContext(session), MPI_Comm_c2f(amps_CommWorld));
+  psb_c_set_index_base(0);
 
   /* Count number of elements in current process. */
   psb_i_t nl = 0;
