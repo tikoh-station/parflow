@@ -3,6 +3,7 @@ set (SRC_FILES_CONST advect.F
   bc_lb.c
   bc_pressure.c
   bc_pressure_package.c
+  cartesian_transform.c
   cghs.c
   char_vector.c
   chebyshev.c
@@ -12,9 +13,11 @@ set (SRC_FILES_CONST advect.F
   compute_maximums.c
   compute_top_and_bottom.c
   compute_patch_top.c
+  compute_permeability_tensor.c
   compute_total_concentration.c
   constantRF.c
   constant_porosity.c
+  coordinate_transform.c
   create_grid.c
   diag_scale.c
   diffuse_lb.c
@@ -237,7 +240,8 @@ else( (${PARFLOW_HAVE_CUDA}) OR (${PARFLOW_HAVE_KOKKOS}) OR (${PARFLOW_HAVE_OMP}
     mg_semi.c
     mg_semi_restrict.c
     mg_semi_prolong.c
-    nl_function_eval.c
+    # nl_function_eval.c
+    zero_function_eval.c
     overlandflow_eval.c
     overlandflow_eval_diffusive.c
     overlandflow_eval_Kin.c
