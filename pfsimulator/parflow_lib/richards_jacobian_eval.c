@@ -265,6 +265,12 @@ int KINSolJacobianFunction(N_Vector pf_n_pressure,
 
   Set_SUNMatrix_From_Matrix(Jacobian, J, JC, current_state);
 
+  int ret = SUNMatAsb_PSBLAS(Jacobian);
+  if(ret != 0)
+  {
+    amps_Printf("Error in SUNMatAsb_PSBLAS: %d\n", ret);
+  }
+
   return 0;
 }
 #endif // PARFLOW_HAVE_PSCTOOLKIT
