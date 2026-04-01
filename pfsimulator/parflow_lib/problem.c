@@ -339,6 +339,16 @@ Problem   *NewProblem(
     PFModuleNewModuleType(ReservoirPackageNewPublicXtraInvoke,
                           ReservoirPackage, (num_phases, num_contaminants));
 
+  /*----------------------------------------------------------------------
+   * Coordinate Transform
+   *-----------------------------------------------------------------------*/
+
+  ProblemCoordinateTransform(problem) = 
+    PFModuleNewModule(CoordinateTransform, ());
+
+  ProblemComputePermeabilityTensor(problem) = 
+    PFModuleNewModule(ComputePermeabilityTensor, (problem));
+
   return problem;
 }
 
@@ -351,6 +361,8 @@ void      FreeProblem(
                       Problem *problem,
                       int      solver)
 {
+  PFModuleFreeModule(ProblemComputePermeabilityTensor(problem));
+  PFModuleFreeModule(ProblemCoordinateTransform(problem));
   PFModuleFreeModule(ProblemWellPackage(problem));
   PFModuleFreeModule(ProblemReservoirPackage(problem));
 
@@ -428,6 +440,15 @@ ProblemData   *NewProblemData(
   ProblemDataPermeabilityX(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
   ProblemDataPermeabilityY(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
   ProblemDataPermeabilityZ(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataPermeabilityTensor(problem_data) = NewPermeabilityTensor(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthUA(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthUB(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthVA(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthVB(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthWA(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataLengthWB(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataJacobian(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  ProblemDataZCoordinate(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
 
   ProblemDataSpecificStorage(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);  //sk
   ProblemDataTSlopeX(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //sk
@@ -493,6 +514,15 @@ void          FreeProblemData(
     FreeVector(ProblemDataPermeabilityX(problem_data));
     FreeVector(ProblemDataPermeabilityY(problem_data));
     FreeVector(ProblemDataPermeabilityZ(problem_data));
+    FreeVector(ProblemDataZCoordinate(problem_data));
+    FreeVector(ProblemDataJacobian(problem_data));
+    FreeVector(ProblemDataLengthUA(problem_data));
+    FreeVector(ProblemDataLengthUB(problem_data));
+    FreeVector(ProblemDataLengthVA(problem_data));
+    FreeVector(ProblemDataLengthVB(problem_data));
+    FreeVector(ProblemDataLengthWA(problem_data));
+    FreeVector(ProblemDataLengthWB(problem_data));
+    FreePermeabilityTensor(ProblemDataPermeabilityTensor(problem_data));
     FreeVector(ProblemDataSpecificStorage(problem_data));   //sk
     FreeVector(ProblemDataTSlopeX(problem_data));   //sk
     FreeVector(ProblemDataTSlopeY(problem_data));   //sk

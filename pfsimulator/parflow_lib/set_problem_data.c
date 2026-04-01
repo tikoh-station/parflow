@@ -61,6 +61,8 @@ typedef struct {
   PFModule  *FBx;   //RMM
   PFModule  *FBy;   //RMM
   PFModule  *FBz;   //RMM
+  PFModule  *coordinate_transform;
+  PFModule  *compute_permeability_tensor;
 
   PFModule  *real_space_z;
   int site_data_not_formed;
@@ -100,6 +102,8 @@ void          SetProblemData(
   PFModule      *FBx = (instance_xtra->FBx);                //rmm
   PFModule      *FBy = (instance_xtra->FBy);                //rmm
   PFModule      *FBz = (instance_xtra->FBz);                //rmm
+  PFModule      *coordinate_transform = (instance_xtra->coordinate_transform);
+  PFModule      *compute_permeability_tensor = (instance_xtra->compute_permeability_tensor);
 
   PFModule      *real_space_z = (instance_xtra->real_space_z);
 
@@ -166,6 +170,10 @@ void          SetProblemData(
                        (problem_data,
                         ProblemDataFBz(problem_data)));
 
+    PFModuleInvokeType(CoordinateTransformInvoke, coordinate_transform,
+                       (problem_data));
+    PFModuleInvokeType(ComputePermeabilityTensorInvoke,
+                       compute_permeability_tensor, (problem_data));
 
     (instance_xtra->site_data_not_formed) = 0;
   }
@@ -183,7 +191,8 @@ PFModule  *SetProblemDataInitInstanceXtra(
                                           Problem *problem,
                                           Grid *   grid,
                                           Grid *   grid2d,
-                                          double * temp_data)
+                                          double * temp_data,
+                                          ProblemData *problem_data)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra;
@@ -265,6 +274,15 @@ PFModule  *SetProblemDataInitInstanceXtra(
     (instance_xtra->FBz) =                                      //RMM
                            PFModuleNewInstance(ProblemFBz(problem), ());
 
+    (instance_xtra->coordinate_transform) = 
+      PFModuleNewInstanceType(CoordinateTransformInitInstanceXtraInvoke,
+      ProblemCoordinateTransform(problem), (problem_data));
+
+    (instance_xtra->compute_permeability_tensor) = 
+      PFModuleNewInstanceType(ComputePermeabilityTensorInitInstanceXtraInvoke,
+                              ProblemComputePermeabilityTensor(problem),
+                              (instance_xtra->coordinate_transform));
+
     (instance_xtra->real_space_z) =
       PFModuleNewInstance(ProblemRealSpaceZ(problem), ());
 
@@ -308,6 +326,12 @@ PFModule  *SetProblemDataInitInstanceXtra(
     PFModuleReNewInstance((instance_xtra->FBy), ());        //RMM
     PFModuleReNewInstance((instance_xtra->FBz), ());        //RMM
 
+    PFModuleReNewInstanceType(CoordinateTransformInitInstanceXtraInvoke,
+                              (instance_xtra->coordinate_transform), (problem_data));
+    PFModuleReNewInstanceType(ComputePermeabilityTensorInitInstanceXtraInvoke,
+                              (instance_xtra->compute_permeability_tensor),
+                              (instance_xtra->coordinate_transform));
+
     PFModuleReNewInstance((instance_xtra->real_space_z), ());
     PFModuleReNewInstance((instance_xtra->wells), ());
     PFModuleReNewInstance((instance_xtra->reservoirs), ());
@@ -336,6 +360,9 @@ void  SetProblemDataFreeInstanceXtra()
     PFModuleFreeInstance(instance_xtra->bc_pressure);
     PFModuleFreeInstance(instance_xtra->wells);
     PFModuleFreeInstance(instance_xtra->reservoirs);
+
+    PFModuleFreeInstance(instance_xtra->compute_permeability_tensor);
+    PFModuleFreeInstance(instance_xtra->coordinate_transform);
 
     PFModuleFreeInstance(instance_xtra->geometries);
     PFModuleFreeInstance(instance_xtra->domain);

@@ -114,6 +114,13 @@ typedef struct {
   /* @RMM Variable dZ */
   PFModule  *dz_mult;           //rmm
   PFModule  *real_space_z;
+
+  /* Coordinate Transform */
+  PFModule  *coordinate_transform;
+
+  /* Permeability Tensor */
+  PFModule *compute_permeability_tensor;
+
 } Problem;
 
 typedef struct {
@@ -180,6 +187,18 @@ typedef struct {
   /* @RMM variable dz  */
   Vector *dz_mult;
   Vector *rsz;
+
+  /* Coordinate Transform */
+  PermeabilityTensor *permeability_tensor;
+  Vector *length_u_A;
+  Vector *length_u_B;
+  Vector *length_v_A;
+  Vector *length_v_B;
+  Vector *length_w_A;
+  Vector *length_w_B;
+  Vector *jacobian;
+  Vector *z_coordinate;
+
 } ProblemData;
 
 /* Values of solver argument to NewProblem function */
@@ -264,6 +283,12 @@ typedef struct {
 #define ProblemWellPackage(problem)               ((problem)->well_package)
 #define ProblemReservoirPackage(problem)               ((problem)->reservoir_package)
 
+/* coordinate transform */
+#define ProblemCoordinateTransform(problem) ((problem)->coordinate_transform)
+
+/* compute_permeability_tensor */
+#define ProblemComputePermeabilityTensor(problem) ((problem)->compute_permeability_tensor)
+
 /* error calculations */
 #define ProblemL2ErrorNorm(problem)               ((problem)->l2_error_norm)
 
@@ -304,6 +329,19 @@ typedef struct {
 #define ProblemDataSSlopeY(problem_data)        ((problem_data)->y_sslope)   //RMM
 #define ProblemDataZmult(problem_data)          ((problem_data)->dz_mult)    //RMM
 #define ProblemDataRealSpaceZ(problem_data)     ((problem_data)->rsz)
+
+#define ProblemDataPermeabilityTensor(problem_data) ((problem_data)->permeability_tensor)
+
+#define ProblemDataLengthUA(problem_data) ((problem_data)->length_u_A)
+#define ProblemDataLengthUB(problem_data) ((problem_data)->length_u_B)
+#define ProblemDataLengthVA(problem_data) ((problem_data)->length_v_A)
+#define ProblemDataLengthVB(problem_data) ((problem_data)->length_v_B)
+#define ProblemDataLengthWA(problem_data) ((problem_data)->length_w_A)
+#define ProblemDataLengthWB(problem_data) ((problem_data)->length_w_B)
+
+#define ProblemDataJacobian(problem_data)    ((problem_data)->jacobian)
+#define ProblemDataZCoordinate(problem_data) ((problem_data)->z_coordinate)
+
 /*--------------------------------------------------------------------------
  * Misc macros
  *   RDF not quite right, maybe?

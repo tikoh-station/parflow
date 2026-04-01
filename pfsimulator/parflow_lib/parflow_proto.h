@@ -101,6 +101,29 @@ void FreeComputePkg(ComputePkg *compute_pkg);
 double ComputePhaseMaximum(double phase_u_max, double dx, double phase_v_max, double dy, double phase_w_max, double dz);
 double ComputeTotalMaximum(Problem *problem, EvalStruct *eval_struct, double s_lower, double s_upper, double total_u_max, double dx, double total_v_max, double dy, double total_w_max, double beta_max, double dz);
 
+/* compute_permeability_tensor.c */
+
+typedef void (*ComputePermeabilityTensorInvoke)(ProblemData *problem_data);
+void ComputePermeabilityTensor(ProblemData *problem_data);
+typedef PFModule  *(*ComputePermeabilityTensorInitInstanceXtraInvoke)(PFModule *coordinate_transform);
+PFModule  *ComputePermeabilityTensorInitInstanceXtra(PFModule *coordinate_transform);
+void  ComputePermeabilityTensorFreeInstanceXtra();
+typedef PFModule *(*ComputePermeabilityTensorNewPublicXtraInvoke)();
+PFModule  *ComputePermeabilityTensorNewPublicXtra();
+void  ComputePermeabilityTensorFreePublicXtra();
+int  ComputePermeabilityTensorSizeOfTempData();
+
+void InitIsotropicPermeabilityTensor(PermeabilityTensor *perm_tensor,
+                                     PFModule *coordinate_transform, 
+                                     ProblemData *problem_data);
+
+void ComputeFacePermeabilityTensor(Vector *K_uu, Vector *K_uv, Vector *K_uw,
+                                   Vector *KC_uu, Vector *KC_uv, Vector *KC_uw,
+                                   Vector *TA_uu, Vector *TA_uv, Vector *TA_uw,
+                                   Vector *TB_uu, Vector *TB_uv, Vector *TB_uw,
+                                   Coordinate coord, ProblemData *problem_data);
+
+
 /* compute_total_concentration.c */
 double ComputeTotalConcen(GrGeomSolid *gr_domain, Grid *grid, Vector *substance);
 
@@ -1136,11 +1159,11 @@ void  CPLSelectTimeStepFreePublicXtra();
 int  CPLSelectTimeStepSizeOfTempData();
 
 typedef void (*SetProblemDataInvoke) (ProblemData *problem_data);
-typedef PFModule *(*SetProblemDataInitInstanceXtraInvoke) (Problem *problem, Grid *grid, Grid *grid2d, double *temp_data);
+typedef PFModule *(*SetProblemDataInitInstanceXtraInvoke) (Problem *problem, Grid *grid, Grid *grid2d, double *temp_data, ProblemData *problem_data);
 
 /* set_problem_data.c */
 void SetProblemData(ProblemData *problem_data);
-PFModule *SetProblemDataInitInstanceXtra(Problem *problem, Grid *grid, Grid *grid2d, double *temp_data);
+PFModule *SetProblemDataInitInstanceXtra(Problem *problem, Grid *grid, Grid *grid2d, double *temp_data, ProblemData *problem_data);
 void SetProblemDataFreeInstanceXtra(void);
 PFModule *SetProblemDataNewPublicXtra(void);
 void SetProblemDataFreePublicXtra(void);
