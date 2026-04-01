@@ -29,6 +29,8 @@
 #ifndef _COORDINATE_TRANSFORM_HEADER
 #define _COORDINATE_TRANSFORM_HEADER
 
+/* Fill in the ghost points at the edges with values from the interior */
+
 typedef enum { U = 0, V = 1, W = 2 } Coordinate;
 
 typedef enum { // position relative to cell center

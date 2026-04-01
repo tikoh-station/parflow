@@ -1274,12 +1274,12 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                                   density_dat, rel_perm_dat, viscosity,
                                   K_ww_dat, K_wu_dat, K_wv_dat);
 
-        // vel_u_dat[vu_negu_idx] = u_negu / dArea_negu;
-        // vel_u_dat[vu_posu_idx] = u_posu / dArea_posu;
-        // vel_v_dat[vv_negv_idx] = u_negv / dArea_negv;
-        // vel_v_dat[vv_posv_idx] = u_posv / dArea_posv;
-        // vel_w_dat[vw_negw_idx] = u_negw / dArea_negw;
-        // vel_w_dat[vw_posw_idx] = u_posw / dArea_posw;
+        if(!is_patch_negu) vel_u_dat[vu_negu_idx] = u_negu / dArea_negu;
+        if(!is_patch_posu) vel_u_dat[vu_posu_idx] = u_posu / dArea_posu;
+        if(!is_patch_negv) vel_v_dat[vv_negv_idx] = u_negv / dArea_negv;
+        if(!is_patch_posv) vel_v_dat[vv_posv_idx] = u_posv / dArea_posv;
+        if(!is_patch_negw) vel_w_dat[vw_negw_idx] = u_negw / dArea_negw;
+        if(!is_patch_posw) vel_w_dat[vw_posw_idx] = u_posw / dArea_posw;
 
         if(is_patch_negu) vel_u_dat[vu_negu_idx] = u_fluxbc / dArea_negu;
         if(is_patch_posu) vel_u_dat[vu_posu_idx] = u_fluxbc / dArea_posu;
