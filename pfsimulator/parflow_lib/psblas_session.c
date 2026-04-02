@@ -148,7 +148,8 @@ void Set_N_Vector_From_Vector(N_Vector nvec, Vector *vec)
     int ny_v = SubvectorNY(v_sub);
     int nz_v = SubvectorNZ(v_sub);
 
-    int i = 0, j = 0, k = 0, pf_idx = 0;
+    int i = 0, j = 0, k = 0;
+    int pf_idx = SubvectorEltIndex(v_sub, ix, iy, iz);
     BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
               pf_idx, nx_v, ny_v, nz_v, 1, 1, 1,
     {
@@ -182,7 +183,8 @@ void Set_Vector_From_N_Vector(Vector *vec, N_Vector nvec)
     int ny_v = SubvectorNY(v_sub);
     int nz_v = SubvectorNZ(v_sub);
 
-    int i = 0, j = 0, k = 0, pf_idx = 0;
+    int i = 0, j = 0, k = 0;
+    int pf_idx = SubvectorEltIndex(v_sub, ix, iy, iz);
     BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
               pf_idx, nx_v, ny_v, nz_v, 1, 1, 1,
     {
@@ -227,10 +229,11 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
     int nz_m = SubmatrixNZ(JB_sub);
 
     /* Insert contributions from JB Matrix */
-    int i = 0, j = 0, k = 0, pf_idx = 0;
+    int i = 0, j = 0, k = 0, idx = 0;
     BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
-              pf_idx, nx_m, ny_m, nz_m, 1, 1, 1,
+              idx, nx_m, ny_m, nz_m, 1, 1, 1,
     {
+      int pf_idx = SubmatrixEltIndex(JB_sub, i, j, k);
       int psb_row_idx = SubgridEltIndex(user_subgrid, i, j, k); // row index
 
       int num_invalid_elements = 0;
@@ -305,12 +308,13 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
     int nz_m = SubmatrixNZ(JC_sub);
 
     /* Insert contributions from JC Matrix */
-    int i = 0, j = 0, k = 0, pf_idx = 0;
+    int i = 0, j = 0, k = 0, idx = 0;
     BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, 1,
-              pf_idx, nx_m, ny_m, nz_m, 1, 1, 1,
+              idx, nx_m, ny_m, nz_m, 1, 1, 1,
     {
       int itop = SubvectorEltIndex(top_sub, i, j, 0);
       int k_ = (int)top_dat[itop];
+      int pf_idx = SubmatrixEltIndex(JC_sub, i, j, k);
 
       if (k_ >= 0)
       {
