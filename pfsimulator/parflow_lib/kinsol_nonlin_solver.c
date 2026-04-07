@@ -691,13 +691,13 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
 #else // PARFLOW_HAVE_PSCTOOLKIT
     
     /* Solve method and type */
-    char methd[20] = "CG";
+    char methd[20] = "RGMRES";
     char ptype[20] = "ML";
     /* Solver options */
     psb_c_SolverOptions options;
     psb_c_DefaultSolverOptions(&options);
-    options.eps    = eta_value;
-    options.itmax  = max_iter;
+    options.eps    = 1e-9;
+    options.itmax  = 100;
     options.irst   = 20;
     options.itrace = 1;
     options.istop  = 1;
@@ -705,12 +705,19 @@ PFModule  *KinsolNonlinSolverInitInstanceXtra(
     /* Create PSBLAS linear solver object for kinsol */
     LS = SUNLinSol_PSBLAS(options, methd, ptype, 
       PSBLASSessionContext(instance_xtra->psb_session));
-    SUNLinSolInitialize(LS);
+    // SUNLinSolInitialize(LS);
+    /* Test SUNLinSol Settings */
+    // SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
+    // SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
+    // SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "BJAC");
+    // SUNLinSolSetc_PSBLAS(LS, "COARSE_SUBSOLVE", "ILU");
+    // SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
+
+    // /* Low-Memory SUNLinSol Settings */
+    SUNLinSolSetc_PSBLAS(LS, "SMOOTHER_TYPE", "L1-JACOBI");
     SUNLinSolSeti_PSBLAS(LS, "SMOOTHER_SWEEPS", 2);
-    SUNLinSolSeti_PSBLAS(LS, "SUB_FILLIN", 1);
-    SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "BJAC");
-    SUNLinSolSetc_PSBLAS(LS, "COARSE_SUBSOLVE", "ILU");
-    SUNLinSolSeti_PSBLAS(LS, "COARSE_FILLIN", 0);
+    SUNLinSolSetc_PSBLAS(LS, "COARSE_SOLVE", "L1-JACOBI");
+    SUNLinSolSeti_PSBLAS(LS, "COARSE_SWEEPS", 20);
 
     KINSetLinearSolver(kin_mem, LS, PSBLASSessionSUNMatrix(instance_xtra->psb_session));
     KINSetJacFn(kin_mem, KINSolJacobianFunction);
