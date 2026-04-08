@@ -202,6 +202,10 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
 {
   Subgrid *user_subgrid = GridSubgrid(GlobalsUserGrid, 0);
 
+  ProblemData *problem_data = StateProblemData(((State*)current_state));
+  Vector *top = ProblemDataIndexOfDomainTop(problem_data);
+  Vector *bot = ProblemDataIndexOfDomainBottom(problem_data);
+
   Grid *JB_grid = MatrixGrid(JB);
   Stencil *JB_stencil = MatrixStencil(JB);
   int JB_stencil_size = StencilSize(JB_stencil);
@@ -217,6 +221,10 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
     Subgrid *subgrid = SubgridArraySubgrid(GridSubgrids(JB_grid), isubgrid);
 
     Submatrix *JB_sub = MatrixSubmatrix(JB, isubgrid);
+    Subvector *top_sub = VectorSubvector(top, isubgrid);
+    double *top_dat = SubvectorData(top_sub);
+    Subvector *bot_sub = VectorSubvector(bot, isubgrid);
+    double *bot_dat = SubvectorData(bot_sub);
 
     int ix = SubgridIX(subgrid);
     int iy = SubgridIY(subgrid);
@@ -245,12 +253,9 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
         int st_j = JB_shape[istencil][1];
         int st_k = JB_shape[istencil][2];
 
-        if (i + st_i < SubgridIX(user_subgrid) ||
-            i + st_i >= SubgridIX(user_subgrid) + SubgridNX(user_subgrid) ||
-            j + st_j < SubgridIY(user_subgrid) ||
-            j + st_j >= SubgridIY(user_subgrid) + SubgridNY(user_subgrid) ||
-            k + st_k < SubgridIZ(user_subgrid) ||
-            k + st_k >= SubgridIZ(user_subgrid) + SubgridNZ(user_subgrid))
+        int itop = SubvectorEltIndex(top_sub, (i + st_i), (j + st_j), 0);
+
+        if (top_dat[itop] < 0 || k + st_k > lrint(top_dat[itop]) || k + st_k < lrint(bot_dat[itop]))
         {
           ++num_invalid_elements;
         }
@@ -284,9 +289,6 @@ void Set_SUNMatrix_From_Matrix(SUNMatrix sunmat,
   Stencil *JC_stencil = MatrixStencil(JC);
   int JC_stencil_size = StencilSize(JC_stencil);
   StencilElt *JC_shape = StencilShape(JC_stencil);
-
-  ProblemData *problem_data = StateProblemData(((State*)current_state));
-  Vector *top = ProblemDataIndexOfDomainTop(problem_data);
 
   isubgrid = 0;
   ForSubgridI(isubgrid, GridSubgrids(JB_grid))
