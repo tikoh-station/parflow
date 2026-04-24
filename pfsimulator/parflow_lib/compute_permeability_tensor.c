@@ -401,15 +401,11 @@ void ComputeFacePermeabilityTensor(Vector *K_uu, Vector *K_uv, Vector *K_uw,
 {
   Grid *grid = VectorGrid(K_uu);
 
-  GrGeomSolid *gr_domain = ProblemDataGrDomain(problem_data);
-
   int isubgrid = 0;
   ForSubgridI(isubgrid, GridSubgrids(grid))
   {
     Subgrid *subgrid = GridSubgrid(grid, isubgrid);
     Subvector *K_uu_sub = VectorSubvector(K_uu, isubgrid);
-
-    int r = SubgridRX(subgrid);
 
     int iu = SubgridIX(subgrid);
     int iv = SubgridIY(subgrid);
