@@ -111,6 +111,7 @@ set (SRC_FILES_CONST advect.F
   solver_lb.c
   solver_richards.c
   subsrf_sim.c
+  terrain_following_transform.c
   time_cycle_data.c
   timing.c
   total_velocity_face.c

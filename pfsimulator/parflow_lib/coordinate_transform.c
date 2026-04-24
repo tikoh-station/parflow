@@ -56,6 +56,14 @@ enum Transform {
 void CoordinateTransform(ProblemData *problem_data)
 {
   PFModule *this_module = ThisPFModule;
+
+  InitVectorAll(ProblemDataLengthUA(problem_data), 1.0);
+  InitVectorAll(ProblemDataLengthUB(problem_data), 1.0);
+  InitVectorAll(ProblemDataLengthVA(problem_data), 1.0);
+  InitVectorAll(ProblemDataLengthVB(problem_data), 1.0);
+  InitVectorAll(ProblemDataLengthWA(problem_data), 1.0);
+  InitVectorAll(ProblemDataLengthWB(problem_data), 1.0);
+
   CoordinateTransformCurveLength(this_module, ProblemDataLengthUA(problem_data), U, OneQuarter);
   CoordinateTransformCurveLength(this_module, ProblemDataLengthUB(problem_data), U, ThreeQuarter);
   CoordinateTransformCurveLength(this_module, ProblemDataLengthVA(problem_data), V, OneQuarter);
@@ -220,7 +228,10 @@ PFModule  *CoordinateTransformInitInstanceXtra(ProblemData *problem_data)
 
       case TerrainFollowing:
       {
-        InputError("Terrain Following Transform has not been implemented yet.", "", "");
+        instance_xtra->coordinate_transform_module = 
+          PFModuleNewInstanceType(TerrainFollowingTransformInitInstanceXtraInvoke,
+                              public_xtra->coordinate_transform_module,
+                              (problem_data));
         break;
       }
 
@@ -237,14 +248,15 @@ PFModule  *CoordinateTransformInitInstanceXtra(ProblemData *problem_data)
       case Cartesian:
       {
         PFModuleReNewInstanceType(CartesianTransformInitInstanceXtraInvoke,
-                              instance_xtra->coordinate_transform_module,
-                              (problem_data));
+                              instance_xtra->coordinate_transform_module, ());
         break;
       }
 
       case TerrainFollowing:
       {
-        InputError("Terrain Following Transform has not been implemented yet.", "", "");
+        PFModuleReNewInstanceType(TerrainFollowingTransformInitInstanceXtraInvoke,
+                              instance_xtra->coordinate_transform_module,
+                              (problem_data));
         break;
       }
 
@@ -291,7 +303,7 @@ PFModule  *CoordinateTransformNewPublicXtra()
   NameArray transform_name_array = NA_NewNameArray("Cartesian TerrainFollowing");
 
   char key[IDB_MAX_KEY_LEN];
-  sprintf(key, "ComputationalGrid.TransformType");
+  sprintf(key, "ComputationalGrid.Transform.Type");
   char *transform_name = GetStringDefault(key, "Cartesian");
   int transform_type = NA_NameToIndexExitOnError(transform_name_array, transform_name, key);
 
@@ -306,7 +318,7 @@ PFModule  *CoordinateTransformNewPublicXtra()
 
     case TerrainFollowing:
     {
-      InputError("<%s> Transform has not been implemented yet.%s\n", transform_name, key);
+      (public_xtra->coordinate_transform_module) = PFModuleNewModuleType(TerrainFollowingTransformNewPublicXtraInvoke, TerrainFollowingTransform, (public_xtra->coordinate_transform_methods));
       break;
     }
 

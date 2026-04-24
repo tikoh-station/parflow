@@ -73,6 +73,7 @@
 #include "solver.h"
 #include "coordinate_transform.h"
 #include "cartesian_transform.h"
+#include "terrain_following_transform.h"
 #include "nl_function_eval.h"
 #include "parflow_proto.h"
 #include "parflow_proto_f.h"
