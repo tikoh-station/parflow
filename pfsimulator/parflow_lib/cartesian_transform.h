@@ -50,9 +50,9 @@ void CartesianTransformMetricContravariant(Vector *g_uu, Vector *g_uv,
                                            Vector *g_uw, Vector *g_vv,
                                            Vector *g_vw, Vector *g_ww);
 
-typedef PFModule *(*CartesianTransformInitInstanceXtraInvoke)(ProblemData *problem_data);
+typedef PFModule *(*CartesianTransformInitInstanceXtraInvoke)();
 
-PFModule *CartesianTransformInitInstanceXtra(ProblemData *problem_data);
+PFModule *CartesianTransformInitInstanceXtra();
 
 void CartesianTransformFreeInstanceXtra();
 

@@ -30,11 +30,7 @@
 
 typedef void PublicXtra;
 
-typedef struct {
-
-  ProblemData *problem_data;
-
-} InstanceXtra;
+typedef void InstanceXtra;
 
 /*--------------------------------------------------------------------------
  * CartesianTransform
@@ -63,7 +59,6 @@ void CartesianTransformZCoordinate(Vector *z_coords)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
-  GrGeomSolid  *gr_domain = ProblemDataGrDomain(instance_xtra->problem_data);
 
   Grid *grid = VectorGrid(z_coords);
 
@@ -71,26 +66,29 @@ void CartesianTransformZCoordinate(Vector *z_coords)
   ForSubgridI(is, GridSubgrids(grid))
   {
     Subgrid *subgrid = GridSubgrid(grid, is);
+    Subvector *z_sub = VectorSubvector(z_coords, is);
+    double *z_dat = SubvectorData(z_sub);
 
     /* RDF: assumes resolutions are the same in all 3 directions */
     int r = SubgridRX(subgrid);
 
-    int iu = SubgridIX(subgrid) - 1;
-    int iv = SubgridIY(subgrid) - 1;
-    int iw = SubgridIZ(subgrid) - 1;
+    int iu = SubgridIX(subgrid);
+    int iv = SubgridIY(subgrid);
+    int iw = SubgridIZ(subgrid);
 
-    int nu = SubgridNX(subgrid) + 1;
-    int nv = SubgridNY(subgrid) + 1;
-    int nw = SubgridNZ(subgrid) + 1;
+    int nu = SubgridNX(subgrid);
+    int nv = SubgridNY(subgrid);
+    int nw = SubgridNZ(subgrid);
 
-    Subvector *z_sub = VectorSubvector(z_coords, is);
-    double *z_dat = SubvectorData(z_sub);
+    int nu_v = SubvectorNX(z_sub);
+    int nv_v = SubvectorNY(z_sub);
+    int nw_v = SubvectorNZ(z_sub);
 
     int i = 0, j = 0, k = 0;
-    GrGeomInLoop(i, j, k, gr_domain, r, iu, iv, iw, nu, nv, nw,
+    int idx = SubvectorEltIndex(z_sub, i, j, k);
+    BoxLoopI1(i, j, k, iu, iv, iw, nu, nv, nw,
+              idx, nu_v, nv_v, nw_v, 1, 1, 1,
     {
-      int idx = SubvectorEltIndex(z_sub, i, j, k);
-
       z_dat[idx] = RealSpaceZ(k, r);
     });
   }
@@ -160,7 +158,7 @@ void CartesianTransformMetricContravariant(Vector *g_uu, Vector *g_uv,
  * CartesianTransformInitInstanceXtra
  *--------------------------------------------------------------------------*/
 
-PFModule  *CartesianTransformInitInstanceXtra(ProblemData *problem_data)
+PFModule  *CartesianTransformInitInstanceXtra()
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -168,7 +166,6 @@ PFModule  *CartesianTransformInitInstanceXtra(ProblemData *problem_data)
   if (instance_xtra == NULL)
   {
     instance_xtra = ctalloc(InstanceXtra, 1);
-    instance_xtra->problem_data = problem_data;
   }
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
